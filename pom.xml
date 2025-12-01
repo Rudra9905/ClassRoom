@@ -121,6 +121,10 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<!-- Explicitly set the main application class so Spring Boot
+                         doesn't fail when multiple @SpringBootApplication
+                         classes are present in the project -->
+					<mainClass>com.smartclassroom.backend.SmartClassroomBackendApplication</mainClass>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
