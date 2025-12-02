@@ -1,15 +1,13 @@
 package com.smartclassroom.backend.dto.assignment;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class AssignmentSubmissionRequestDTO {
 
-    @NotNull
+    // assignmentId is set by the controller from path variable, so no validation needed
     private Long assignmentId;
 
-    @NotBlank
+    // contentUrl is optional - can be provided via URL or file upload
     private String contentUrl;
 }

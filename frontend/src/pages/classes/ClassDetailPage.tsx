@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Tabs } from '../../components/ui/Tabs';
 import { Card } from '../../components/ui/Card';
@@ -8,6 +8,9 @@ import { Spinner } from '../../components/ui/Spinner';
 import { Badge } from '../../components/ui/Badge';
 import { classroomApi } from '../../services/classroomApi';
 import { chatApi } from '../../services/chatApi';
+import { assignmentApi } from '../../services/assignmentApi';
+import { fileApi } from '../../services/fileApi';
+import { Link } from 'react-router-dom';
 import type {
   Classroom,
   Announcement,
@@ -40,15 +43,19 @@ export const ClassDetailPage: React.FC = () => {
   const [members, setMembers] = useState<Member[] | null>(null);
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [newAnnouncementTitle, setNewAnnouncementTitle] = useState('');
   const [newAnnouncementContent, setNewAnnouncementContent] = useState('');
+  const [announcementFile, setAnnouncementFile] = useState<File | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [joinMeetingCode, setJoinMeetingCode] = useState('');
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [assignmentTitle, setAssignmentTitle] = useState('');
+  const [assignmentDescription, setAssignmentDescription] = useState('');
+  const [assignmentDueDate, setAssignmentDueDate] = useState('');
+  const [assignmentMaxMarks, setAssignmentMaxMarks] = useState('');
+  const [assignmentFile, setAssignmentFile] = useState<File | null>(null);
 
-  // Load initial data
   useEffect(() => {
     if (!id) return;
     const load = async () => {
@@ -76,48 +83,30 @@ export const ClassDetailPage: React.FC = () => {
     load();
   }, [id]);
 
-  // Poll for new messages when chat tab is active
-  useEffect(() => {
-    if (!id || activeTab !== TAB_IDS.CHAT) return;
-
-    const loadMessages = async () => {
-      try {
-        const msgs = await chatApi.getMessages(id);
-        setMessages(msgs);
-      } catch (e) {
-        console.error('Failed to refresh messages:', e);
-        // Don't show toast for polling errors to avoid spam
-      }
-    };
-
-    // Load immediately
-    loadMessages();
-
-    // Then poll every 3 seconds
-    const interval = setInterval(loadMessages, 3000);
-
-    return () => clearInterval(interval);
-  }, [id, activeTab]);
-
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    if (messagesEndRef.current && activeTab === TAB_IDS.CHAT) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, activeTab]);
-
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
     if (!user) return;
     try {
+      let attachmentUrl: string | undefined;
+      if (announcementFile) {
+        const ext = announcementFile.name.split('.').pop()?.toLowerCase();
+        const allowed = ['pdf', 'zip', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (!ext || !allowed.includes(ext)) {
+          toast.error('Only PDF, image, or ZIP files are allowed');
+          return;
+        }
+        attachmentUrl = await fileApi.upload(announcementFile);
+      }
       const created = await classroomApi.createAnnouncement(id, user.id, {
         title: newAnnouncementTitle,
         content: newAnnouncementContent,
+        attachmentUrl,
       });
       setAnnouncements((prev) => (prev ? [created, ...prev] : [created]));
       setNewAnnouncementTitle('');
       setNewAnnouncementContent('');
+      setAnnouncementFile(null);
       toast.success('Announcement posted');
     } catch (e) {
       console.error(e);
@@ -125,35 +114,67 @@ export const ClassDetailPage: React.FC = () => {
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !chatInput.trim() || !user || sendingMessage) return;
-    
-    const messageContent = chatInput.trim();
-    setChatInput('');
-    setSendingMessage(true);
+    if (!id || !user) {
+      toast.error('Missing classroom or user information');
+      return;
+    }
+
+    const due = new Date(assignmentDueDate);
+    if (Number.isNaN(due.getTime()) || due.getTime() <= Date.now()) {
+      toast.error('Due date must be in the future');
+      return;
+    }
 
     try {
-      const created = await chatApi.sendMessage(id, user.id, { content: messageContent });
-      setMessages((prev) => {
-        // Check if message already exists (from polling)
-        if (prev?.some(m => m.id === created.id)) {
-          return prev;
+      let attachmentUrl: string | undefined;
+      if (assignmentFile) {
+        const ext = assignmentFile.name.split('.').pop()?.toLowerCase();
+        const allowed = ['pdf', 'zip', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (!ext || !allowed.includes(ext)) {
+          toast.error('Only PDF, image, or ZIP files are allowed');
+          return;
         }
-        return prev ? [...prev, created] : [created];
+        attachmentUrl = await fileApi.upload(assignmentFile);
+      }
+
+      const created = await classroomApi.createAssignment(id, user.id, {
+        title: assignmentTitle,
+        description: assignmentDescription,
+        dueDate: new Date(assignmentDueDate).toISOString(),
+        maxMarks: parseInt(assignmentMaxMarks, 10),
+        attachmentUrl,
       });
-      // Scroll to bottom after sending
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      setAssignments((prev) => (prev ? [created, ...prev] : [created]));
+      setShowAssignmentModal(false);
+      setAssignmentTitle('');
+      setAssignmentDescription('');
+      setAssignmentDueDate('');
+      setAssignmentMaxMarks('');
+      setAssignmentFile(null);
+      toast.success('Assignment created');
+      // Refresh dashboard if we're on it
+      if (window.location.pathname === '/dashboard') {
+        window.dispatchEvent(new Event('focus'));
+      }
     } catch (e: any) {
-      console.error('Failed to send message:', e);
-      // Restore the input on error
-      setChatInput(messageContent);
-      const errorMessage = e?.response?.data?.message || e?.message || 'Failed to send message';
+      console.error('Error creating assignment:', e);
+      const errorMessage = e.response?.data?.message || e.message || 'Failed to create assignment';
       toast.error(errorMessage);
-    } finally {
-      setSendingMessage(false);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !chatInput.trim() || !user) return;
+    try {
+      const created = await chatApi.sendMessage(id, user.id, { content: chatInput.trim() });
+      setMessages((prev) => (prev ? [...prev, created] : [created]));
+      setChatInput('');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to send message');
     }
   };
 
@@ -209,6 +230,26 @@ export const ClassDetailPage: React.FC = () => {
           <p>
             Class code: <span className="font-mono font-medium">{classroom.code}</span>
           </p>
+          {!isTeacher && user && (
+            <button
+              type="button"
+              className="mt-1 text-xs text-red-600 hover:text-red-700"
+              onClick={async () => {
+                if (!id || !user) return;
+                if (!confirm('Leave this class? You will lose access to all assignments and materials.')) return;
+                try {
+                  await classroomApi.leaveClassroom(id, user.id);
+                  toast.success('Left class');
+                  navigate('/classes');
+                } catch (err: any) {
+                  console.error(err);
+                  toast.error(err.response?.data?.message || 'Failed to leave class');
+                }
+              }}
+            >
+              Leave class
+            </button>
+          )}
         </div>
       </header>
 
@@ -220,7 +261,7 @@ export const ClassDetailPage: React.FC = () => {
           { id: TAB_IDS.CHAT, label: 'Chat' },
           { id: TAB_IDS.LIVE, label: 'Live' },
         ]}
-        activeId={activeTab}
+        activeTab={activeTab}
         onChange={setActiveTab}
       />
 
@@ -247,6 +288,20 @@ export const ClassDetailPage: React.FC = () => {
                     required
                   />
                 </div>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Attachment (optional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="application/pdf,image/*,application/zip"
+                    className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border file:border-slate-200 file:bg-slate-50 file:px-3 file:py-1 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-100"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setAnnouncementFile(file);
+                    }}
+                  />
+                </div>
                 <div className="flex justify-end">
                   <Button type="submit">Post</Button>
                 </div>
@@ -265,9 +320,67 @@ export const ClassDetailPage: React.FC = () => {
                     <span className="font-medium text-slate-900">{a.title}</span>  b7{' '}
                     {a.authorName}
                   </p>
-                  <p>{new Date(a.createdAt).toLocaleString()}</p>
+                  <div className="flex items-center gap-2">
+                    <p>{new Date(a.createdAt).toLocaleString()}</p>
+                    {isTeacher && (
+                      <button
+                        type="button"
+                        className="text-xs text-red-600 hover:text-red-700"
+                        onClick={async () => {
+                          if (!id) return;
+                          if (!confirm('Delete this announcement? This cannot be undone.')) return;
+                          try {
+                            await classroomApi.deleteAnnouncement(id, a.id);
+                            setAnnouncements((prev) => prev?.filter((ann) => ann.id !== a.id) ?? []);
+                            toast.success('Announcement deleted');
+                          } catch (err) {
+                            console.error(err);
+                            toast.error('Failed to delete announcement');
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p className="mt-1 text-sm text-slate-700">{a.content}</p>
+                {a.attachmentUrl && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <a
+                      href={a.attachmentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                    >
+                      Open attachment
+                    </a>
+                    {isTeacher && (
+                      <button
+                        type="button"
+                        className="text-xs text-slate-400 hover:text-red-600"
+                        onClick={async () => {
+                          if (!id) return;
+                          try {
+                            const updated = await classroomApi.clearAnnouncementAttachment(
+                              id,
+                              a.id
+                            );
+                            setAnnouncements((prev) =>
+                              prev?.map((ann) => (ann.id === updated.id ? updated : ann)) ?? []
+                            );
+                            toast.success('Attachment removed');
+                          } catch (err) {
+                            console.error(err);
+                            toast.error('Failed to remove attachment');
+                          }
+                        }}
+                      >
+                        Remove material
+                      </button>
+                    )}
+                  </div>
+                )}
               </Card>
             ))}
           </div>
@@ -278,8 +391,89 @@ export const ClassDetailPage: React.FC = () => {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Assignments</h2>
-            {isTeacher && <Button>Create assignment</Button>}
+            {isTeacher && (
+              <Button onClick={() => setShowAssignmentModal(true)}>Create assignment</Button>
+            )}
           </div>
+
+          {showAssignmentModal && (
+            <Card className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-900">New Assignment</h3>
+                <button
+                  onClick={() => setShowAssignmentModal(false)}
+                  className="text-xs text-slate-500 hover:text-slate-700"
+                >
+                  Cancel
+                </button>
+              </div>
+              <form className="space-y-3" onSubmit={handleCreateAssignment}>
+                <Input
+                  label="Title"
+                  value={assignmentTitle}
+                  onChange={(e) => setAssignmentTitle(e.target.value)}
+                  required
+                />
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Description
+                  </label>
+                  <textarea
+                    className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                    rows={3}
+                    value={assignmentDescription}
+                    onChange={(e) => setAssignmentDescription(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-slate-700">
+                      Due Date
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                      value={assignmentDueDate}
+                      onChange={(e) => setAssignmentDueDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Input
+                    label="Max Marks"
+                    type="number"
+                    value={assignmentMaxMarks}
+                    onChange={(e) => setAssignmentMaxMarks(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Attachment (optional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="application/pdf,image/*,application/zip"
+                    className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border file:border-slate-200 file:bg-slate-50 file:px-3 file:py-1 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-100"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setAssignmentFile(file);
+                    }}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setShowAssignmentModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">Create</Button>
+                </div>
+              </form>
+            </Card>
+          )}
+
           {(!assignments || assignments.length === 0) && (
             <p className="text-sm text-slate-500">No assignments yet.</p>
           )}
@@ -292,9 +486,17 @@ export const ClassDetailPage: React.FC = () => {
                     Due {new Date(a.dueDate).toLocaleDateString()}  b7 Max {a.maxMarks} marks
                   </p>
                 </div>
-                <Badge variant={a.status === 'OPEN' ? 'success' : 'default'}>
-                  {a.status ?? 'OPEN'}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Badge variant={a.status === 'OPEN' ? 'success' : 'default'}>
+                    {a.status ?? 'OPEN'}
+                  </Badge>
+                  <Link
+                    to={`/assignments/${a.id}`}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                  >
+                    OPEN
+                  </Link>
+                </div>
               </Card>
             ))}
           </div>
@@ -331,41 +533,27 @@ export const ClassDetailPage: React.FC = () => {
         <section className="grid h-[480px] grid-rows-[1fr_auto] rounded-2xl bg-white p-4 shadow-soft ring-1 ring-slate-100">
           <div className="space-y-2 overflow-y-auto pr-1 text-sm">
             {(!messages || messages.length === 0) && (
-              <p className="text-sm text-slate-500">No messages yet. Start the conversation!</p>
+              <p className="text-sm text-slate-500">No messages yet.</p>
             )}
-            {messages?.map((m) => {
-              const isOwnMessage = user && m.senderName === user.name;
-              return (
-                <div
-                  key={m.id}
-                  className={`rounded-xl px-3 py-2 ${
-                    isOwnMessage ? 'bg-primary-50 ml-auto max-w-[80%]' : 'bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className={`font-medium ${isOwnMessage ? 'text-primary-800' : 'text-slate-800'}`}>
-                      {m.senderName}
-                    </span>
-                    <span>{new Date(m.createdAt).toLocaleTimeString()}</span>
-                  </div>
-                  <p className={`mt-1 text-sm ${isOwnMessage ? 'text-primary-900' : 'text-slate-800'}`}>
-                    {m.content}
-                  </p>
+            {messages?.map((m) => (
+              <div key={m.id} className="rounded-xl bg-slate-50 px-3 py-2">
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span className="font-medium text-slate-800">{m.senderName}</span>
+                  <span>{new Date(m.createdAt).toLocaleTimeString()}</span>
                 </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
+                <p className="mt-1 text-sm text-slate-800">{m.content}</p>
+              </div>
+            ))}
           </div>
           <form className="mt-3 flex gap-2" onSubmit={handleSendMessage}>
             <input
-              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-primary-500 focus:bg-white focus:ring-1 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              placeholder="Write a message..."
+              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-primary-500 focus:bg-white focus:ring-1 focus:ring-primary-500"
+              placeholder="Write a message"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              disabled={sendingMessage}
             />
-            <Button type="submit" disabled={!chatInput.trim() || sendingMessage}>
-              {sendingMessage ? 'Sending...' : 'Send'}
+            <Button type="submit" disabled={!chatInput.trim()}>
+              Send
             </Button>
           </form>
         </section>

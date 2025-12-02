@@ -102,6 +102,22 @@ public class ClassroomService {
         classroomRepository.delete(classroom);
     }
 
+    public void leaveClassroom(Long classroomId, Long userId) {
+        Classroom classroom = getClassroomById(classroomId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+        
+        // Check if user is the teacher - teachers cannot leave their own classroom
+        if (classroom.getTeacher().getId().equals(userId)) {
+            throw new BadRequestException("Teachers cannot leave their own classroom. Delete the classroom instead.");
+        }
+        
+        ClassroomMember member = classroomMemberRepository.findByClassroomIdAndUserId(classroomId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User is not a member of this classroom"));
+        
+        classroomMemberRepository.delete(member);
+    }
+
     private String generateClassCode() {
         byte[] buffer = new byte[6];
         RANDOM.nextBytes(buffer);

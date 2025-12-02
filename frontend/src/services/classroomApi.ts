@@ -100,6 +100,11 @@ export const classroomApi = {
   async deleteClassroom(id: string): Promise<void> {
     await apiClient.delete(`/classrooms/${id}`);
   },
+  async leaveClassroom(classroomId: string, userId: string): Promise<void> {
+    await apiClient.delete(`/classrooms/${classroomId}/leave`, {
+      params: { userId },
+    });
+  },
   async deleteAnnouncement(classroomId: string, announcementId: string): Promise<void> {
     await apiClient.delete(`/classrooms/${classroomId}/announcements/${announcementId}`);
   },

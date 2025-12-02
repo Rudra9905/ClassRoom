@@ -113,6 +113,12 @@ export const AssignmentDetailPage: React.FC = () => {
         finalUrl = await fileApi.upload(submissionFile);
       }
 
+      if (!finalUrl || finalUrl.trim() === '') {
+        toast.error('Please provide a submission link or upload a file');
+        setSubmitting(false);
+        return;
+      }
+
       const created = await assignmentApi.submitAssignment(id, user.id, {
         contentUrl: finalUrl,
       });

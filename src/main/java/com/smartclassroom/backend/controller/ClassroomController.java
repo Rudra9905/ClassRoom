@@ -67,6 +67,12 @@ public class ClassroomController {
         classroomService.deleteClassroom(id);
     }
 
+    @DeleteMapping("/{id}/leave")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leaveClassroom(@PathVariable Long id, @RequestParam("userId") Long userId) {
+        classroomService.leaveClassroom(id, userId);
+    }
+
     private ClassroomResponseDTO toClassroomResponse(Classroom classroom) {
         User teacher = classroom.getTeacher();
         UserResponseDTO teacherDto = UserResponseDTO.builder()
