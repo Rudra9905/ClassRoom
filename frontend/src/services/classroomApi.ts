@@ -1,38 +1,117 @@
 import { apiClient } from './apiClient';
-import type { Announcement, Assignment, Classroom, Member } from '../types/domain';
+import type { Announcement, Assignment, Classroom, Member, UserRole } from '../types/domain';
+
+type ClassroomResponseDTO = {
+  id: number;
+  name: string;
+  description?: string | null;
+  code: string;
+  teacher: {
+    id: number;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+};
+
+type ClassroomMemberResponseDTO = {
+  id: number;
+  classroomId: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+  roleInClass: string;
+  joinedAt: string;
+};
+
+type AnnouncementResponseDTO = {
+  id: number;
+  classroomId: number;
+  author: {
+    id: number;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+  title: string;
+  content: string;
+  createdAt: string;
+};
+
+const mapClassroom = (dto: ClassroomResponseDTO): Classroom => ({
+  id: String(dto.id),
+  name: dto.name,
+  description: dto.description ?? undefined,
+  code: dto.code,
+  teacherName: dto.teacher.name,
+});
+
+const mapMember = (dto: ClassroomMemberResponseDTO): Member => ({
+  id: String(dto.id),
+  name: dto.user.name,
+  role: dto.user.role,
+  joinedAt: dto.joinedAt,
+});
+
+const mapAnnouncement = (dto: AnnouncementResponseDTO): Announcement => ({
+  id: String(dto.id),
+  title: dto.title,
+  content: dto.content,
+  authorName: dto.author.name,
+  createdAt: dto.createdAt,
+});
 
 export const classroomApi = {
-  async getClassrooms(): Promise<Classroom[]> {
-    const { data } = await apiClient.get<Classroom[]>('/classrooms');
-    return data;
+  async getClassrooms(params?: { teacherId?: string; studentId?: string }): Promise<Classroom[]> {
+    const { data } = await apiClient.get<ClassroomResponseDTO[]>('/classrooms', {
+      params: {
+        teacherId: params?.teacherId,
+        studentId: params?.studentId,
+      },
+    });
+    return data.map(mapClassroom);
   },
-  async createClassroom(payload: { name: string; description?: string }): Promise<Classroom> {
-    const { data } = await apiClient.post<Classroom>('/classrooms', payload);
-    return data;
+  async createClassroom(
+    teacherId: string,
+    payload: { name: string; description?: string }
+  ): Promise<Classroom> {
+    const { data } = await apiClient.post<ClassroomResponseDTO>('/classrooms', payload, {
+      params: { teacherId },
+    });
+    return mapClassroom(data);
   },
-  async joinClassroom(code: string): Promise<Classroom> {
-    const { data } = await apiClient.post<Classroom>('/classrooms/join', { code });
-    return data;
+  async joinClassroom(userId: string, code: string): Promise<Classroom> {
+    const { data } = await apiClient.post<ClassroomResponseDTO>(
+      '/classrooms/join',
+      { code },
+      { params: { userId } }
+    );
+    return mapClassroom(data);
   },
   async getClassroom(id: string): Promise<Classroom> {
-    const { data } = await apiClient.get<Classroom>(`/classrooms/${id}`);
-    return data;
+    const { data } = await apiClient.get<ClassroomResponseDTO>(`/classrooms/${id}`);
+    return mapClassroom(data);
   },
   async getAnnouncements(classroomId: string): Promise<Announcement[]> {
-    const { data } = await apiClient.get<Announcement[]>(
+    const { data } = await apiClient.get<AnnouncementResponseDTO[]>(
       `/classrooms/${classroomId}/announcements`
     );
-    return data;
+    return data.map(mapAnnouncement);
   },
   async createAnnouncement(
     classroomId: string,
+    authorId: string,
     payload: { title: string; content: string }
   ): Promise<Announcement> {
-    const { data } = await apiClient.post<Announcement>(
+    const { data } = await apiClient.post<AnnouncementResponseDTO>(
       `/classrooms/${classroomId}/announcements`,
-      payload
+      payload,
+      { params: { authorId } }
     );
-    return data;
+    return mapAnnouncement(data);
   },
   async getAssignments(classroomId: string): Promise<Assignment[]> {
     const { data } = await apiClient.get<Assignment[]>(
@@ -41,7 +120,9 @@ export const classroomApi = {
     return data;
   },
   async getMembers(classroomId: string): Promise<Member[]> {
-    const { data } = await apiClient.get<Member[]>(`/classrooms/${classroomId}/members`);
-    return data;
+    const { data } = await apiClient.get<ClassroomMemberResponseDTO[]>(
+      `/classrooms/${classroomId}/members`
+    );
+    return data.map(mapMember);
   },
 };

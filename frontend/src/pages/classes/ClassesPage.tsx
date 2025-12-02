@@ -24,9 +24,14 @@ export const ClassesPage: React.FC = () => {
   const isTeacher = user?.role === 'TEACHER';
 
   const load = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const data = await classroomApi.getClassrooms();
+      const data = await classroomApi.getClassrooms(
+        user.role === 'TEACHER'
+          ? { teacherId: user.id }
+          : { studentId: user.id }
+      );
       setClasses(data);
     } catch (e) {
       console.error(e);
@@ -42,8 +47,12 @@ export const ClassesPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast.error('You must be logged in to create a class');
+      return;
+    }
     try {
-      await classroomApi.createClassroom({ name, description });
+      await classroomApi.createClassroom(user.id, { name, description });
       toast.success('Class created');
       setCreateOpen(false);
       setName('');
@@ -57,8 +66,12 @@ export const ClassesPage: React.FC = () => {
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast.error('You must be logged in to join a class');
+      return;
+    }
     try {
-      await classroomApi.joinClassroom(joinCode);
+      await classroomApi.joinClassroom(user.id, joinCode);
       toast.success('Joined class');
       setJoinOpen(false);
       setJoinCode('');

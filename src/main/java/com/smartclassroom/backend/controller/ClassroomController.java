@@ -91,6 +91,7 @@ public class ClassroomController {
                 .classroomId(member.getClassroom().getId())
                 .user(userDto)
                 .roleInClass(member.getRoleInClass())
+                .joinedAt(member.getJoinedAt())
                 .build();
     }
 }

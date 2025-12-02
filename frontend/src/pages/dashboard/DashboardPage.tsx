@@ -15,9 +15,14 @@ export const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
+      if (!user) return;
       try {
         const [cls, asg] = await Promise.all([
-          classroomApi.getClassrooms(),
+          classroomApi.getClassrooms(
+            user.role === 'TEACHER'
+              ? { teacherId: user.id }
+              : { studentId: user.id }
+          ),
           assignmentApi.getMyAssignments(),
         ]);
         setClasses(cls);

@@ -5,6 +5,8 @@ import com.smartclassroom.backend.model.ClassroomRole;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 public class ClassroomMemberResponseDTO {
@@ -12,4 +14,5 @@ public class ClassroomMemberResponseDTO {
     private Long classroomId;
     private UserResponseDTO user;
     private ClassroomRole roleInClass;
+    private LocalDateTime joinedAt;
 }
