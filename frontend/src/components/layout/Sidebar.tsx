@@ -4,15 +4,16 @@ import {
   HomeIcon,
   RectangleStackIcon,
   ClipboardDocumentListIcon,
-  ChatBubbleLeftRightIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
 
+// Sidebar navigation contains only top-level sections. Class-specific chat
+// is available inside each classroom detail page (Chat tab), so we do not
+// show a separate global "Chat" item here.
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
   { to: '/classes', label: 'Classes', icon: RectangleStackIcon },
   { to: '/assignments', label: 'Assignments', icon: ClipboardDocumentListIcon },
-  { to: '/classes', label: 'Chat', icon: ChatBubbleLeftRightIcon },
   { to: '/profile', label: 'Profile', icon: UserCircleIcon },
 ];
 
