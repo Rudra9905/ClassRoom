@@ -16,6 +16,7 @@ export interface Announcement {
   content: string;
   authorName: string;
   createdAt: string;
+  attachmentUrl?: string;
 }
 
 export type AssignmentStatus = 'OPEN' | 'CLOSED' | 'SUBMITTED' | 'GRADED';
@@ -28,6 +29,39 @@ export interface Assignment {
   dueDate: string;
   maxMarks: number;
   status?: AssignmentStatus;
+  attachmentUrl?: string;
+}
+
+export interface StudentAssignment {
+  id: string;
+  classroomId: string;
+  classroomName: string;
+  title: string;
+  description?: string;
+  dueDate: string;
+  maxMarks: number;
+  createdAt: string;
+  attachmentUrl?: string;
+  isSubmitted: boolean;
+  submittedAt?: string;
+  marks?: number;
+  feedback?: string;
+  isPastDeadline: boolean;
+}
+
+export interface AssignmentStatistics {
+  assignmentId: string;
+  totalStudents: number;
+  submittedCount: number;
+  notSubmittedCount: number;
+  gradedCount: number;
+}
+
+export interface NonSubmittedStudent {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
 }
 
 export interface Member {

@@ -2,7 +2,11 @@ package com.smartclassroom.backend.controller;
 
 import com.smartclassroom.backend.dto.assignment.AssignmentCreateRequestDTO;
 import com.smartclassroom.backend.dto.assignment.AssignmentResponseDTO;
+import com.smartclassroom.backend.dto.assignment.AssignmentStatisticsDTO;
+import com.smartclassroom.backend.dto.assignment.AssignmentUpdateRequestDTO;
+import com.smartclassroom.backend.dto.auth.UserResponseDTO;
 import com.smartclassroom.backend.model.Assignment;
+import com.smartclassroom.backend.model.User;
 import com.smartclassroom.backend.service.AssignmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +47,32 @@ public class AssignmentController {
         return toResponse(assignment);
     }
 
+    @PutMapping("/{assignmentId}")
+    public AssignmentResponseDTO update(@PathVariable Long classroomId,
+                                        @PathVariable Long assignmentId,
+                                        @Valid @RequestBody AssignmentUpdateRequestDTO request) {
+        Assignment assignment = assignmentService.updateAssignment(assignmentId, request);
+        return toResponse(assignment);
+    }
+
+    @GetMapping("/{assignmentId}/statistics")
+    public AssignmentStatisticsDTO getStatistics(@PathVariable Long classroomId, @PathVariable Long assignmentId) {
+        return assignmentService.getAssignmentStatistics(assignmentId);
+    }
+
+    @GetMapping("/{assignmentId}/non-submitted-students")
+    public List<UserResponseDTO> getNonSubmittedStudents(@PathVariable Long classroomId, @PathVariable Long assignmentId) {
+        return assignmentService.getNonSubmittedStudents(assignmentId).stream()
+                .map(this::toUserResponse)
+                .collect(Collectors.toList());
+    }
+
+    @DeleteMapping("/{assignmentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAssignment(@PathVariable Long classroomId, @PathVariable Long assignmentId) {
+        assignmentService.deleteAssignment(assignmentId);
+    }
+
     private AssignmentResponseDTO toResponse(Assignment assignment) {
         return AssignmentResponseDTO.builder()
                 .id(assignment.getId())
@@ -51,7 +81,17 @@ public class AssignmentController {
                 .description(assignment.getDescription())
                 .dueDate(assignment.getDueDate())
                 .maxMarks(assignment.getMaxMarks())
+                .attachmentUrl(assignment.getAttachmentUrl())
                 .createdAt(assignment.getCreatedAt())
+                .build();
+    }
+
+    private UserResponseDTO toUserResponse(User user) {
+        return UserResponseDTO.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole())
                 .build();
     }
 }

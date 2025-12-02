@@ -14,5 +14,6 @@ public class AssignmentResponseDTO {
     private String description;
     private LocalDateTime dueDate;
     private Integer maxMarks;
+    private String attachmentUrl;
     private LocalDateTime createdAt;
 }

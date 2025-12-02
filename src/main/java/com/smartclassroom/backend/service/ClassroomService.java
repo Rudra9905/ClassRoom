@@ -95,6 +95,13 @@ public class ClassroomService {
         return classroomMemberRepository.findByClassroomId(classroomId);
     }
 
+    public void deleteClassroom(Long classroomId) {
+        Classroom classroom = getClassroomById(classroomId);
+        // Delete all members first (cascade should handle this, but being explicit)
+        classroomMemberRepository.deleteAll(classroomMemberRepository.findByClassroomId(classroomId));
+        classroomRepository.delete(classroom);
+    }
+
     private String generateClassCode() {
         byte[] buffer = new byte[6];
         RANDOM.nextBytes(buffer);

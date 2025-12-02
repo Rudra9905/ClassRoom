@@ -14,5 +14,6 @@ public class AnnouncementResponseDTO {
     private UserResponseDTO author;
     private String title;
     private String content;
+    private String attachmentUrl;
     private LocalDateTime createdAt;
 }

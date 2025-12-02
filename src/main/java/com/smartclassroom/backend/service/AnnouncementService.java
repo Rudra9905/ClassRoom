@@ -20,7 +20,7 @@ public class AnnouncementService {
     private final ClassroomRepository classroomRepository;
     private final UserRepository userRepository;
 
-    public Announcement createAnnouncement(Long classroomId, Long authorId, String title, String content) {
+    public Announcement createAnnouncement(Long classroomId, Long authorId, String title, String content, String attachmentUrl) {
         Classroom classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Classroom not found with id " + classroomId));
         User author = userRepository.findById(authorId)
@@ -31,6 +31,7 @@ public class AnnouncementService {
                 .author(author)
                 .title(title)
                 .content(content)
+                .attachmentUrl(attachmentUrl)
                 .build();
         return announcementRepository.save(announcement);
     }
@@ -39,8 +40,20 @@ public class AnnouncementService {
         return announcementRepository.findByClassroomIdOrderByCreatedAtDesc(classroomId);
     }
 
+    public Announcement clearAttachment(Long announcementId) {
+        Announcement announcement = announcementRepository.findById(announcementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Announcement not found with id " + announcementId));
+        announcement.setAttachmentUrl(null);
+        return announcementRepository.save(announcement);
+    }
+
     public Announcement getAnnouncement(Long announcementId) {
         return announcementRepository.findById(announcementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Announcement not found with id " + announcementId));
+    }
+
+    public void deleteAnnouncement(Long announcementId) {
+        Announcement announcement = getAnnouncement(announcementId);
+        announcementRepository.delete(announcement);
     }
 }

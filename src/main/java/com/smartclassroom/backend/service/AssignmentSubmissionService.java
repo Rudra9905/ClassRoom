@@ -2,6 +2,7 @@ package com.smartclassroom.backend.service;
 
 import com.smartclassroom.backend.dto.assignment.AssignmentSubmissionRequestDTO;
 import com.smartclassroom.backend.dto.assignment.GradeSubmissionRequestDTO;
+import com.smartclassroom.backend.exception.BadRequestException;
 import com.smartclassroom.backend.exception.DuplicateResourceException;
 import com.smartclassroom.backend.exception.ResourceNotFoundException;
 import com.smartclassroom.backend.model.*;
@@ -11,6 +12,7 @@ import com.smartclassroom.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -26,6 +28,11 @@ public class AssignmentSubmissionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found with id " + assignmentId));
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + studentId));
+
+        // Check if deadline has passed
+        if (assignment.getDueDate() != null && LocalDateTime.now().isAfter(assignment.getDueDate())) {
+            throw new BadRequestException("Cannot submit assignment after the deadline");
+        }
 
         submissionRepository.findByAssignmentIdAndStudentId(assignmentId, studentId)
                 .ifPresent(s -> { throw new DuplicateResourceException("Submission already exists for this student and assignment"); });

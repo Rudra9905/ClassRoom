@@ -11,4 +11,6 @@ public class AnnouncementCreateRequestDTO {
 
     @NotBlank
     private String content;
+
+    private String attachmentUrl;
 }

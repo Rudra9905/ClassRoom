@@ -4,37 +4,54 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { classroomApi } from '../../services/classroomApi';
 import { assignmentApi } from '../../services/assignmentApi';
-import type { Classroom, Assignment } from '../../types/domain';
+import type { Classroom, StudentAssignment } from '../../types/domain';
 import { Link } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [classes, setClasses] = useState<Classroom[] | null>(null);
-  const [assignments, setAssignments] = useState<Assignment[] | null>(null);
+  const [assignments, setAssignments] = useState<StudentAssignment[] | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      if (!user) return;
-      try {
-        const [cls, asg] = await Promise.all([
-          classroomApi.getClassrooms(
-            user.role === 'TEACHER'
-              ? { teacherId: user.id }
-              : { studentId: user.id }
-          ),
-          assignmentApi.getMyAssignments(),
-        ]);
-        setClasses(cls);
-        setAssignments(asg);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const loadData = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const [cls, asg] = await Promise.all([
+        classroomApi.getClassrooms(
+          user.role === 'TEACHER'
+            ? { teacherId: user.id }
+            : { studentId: user.id }
+        ),
+        assignmentApi.getStudentAssignments(user.id, user.role),
+      ]);
+      setClasses(cls);
+      setAssignments(asg);
+    } catch (e) {
+      console.error('Failed to load dashboard data:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const pendingAssignments = assignments?.filter((a) => a.status === 'OPEN').length ?? 0;
+  useEffect(() => {
+    loadData();
+  }, [user]);
+
+  // Refresh when window regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      loadData();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user]);
+
+  const now = new Date();
+  const pendingAssignments =
+    assignments?.filter((a) => !a.isSubmitted && !a.isPastDeadline).length ?? 0;
+  const upcomingDeadlines =
+    assignments?.filter((a) => new Date(a.dueDate) > now).length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -71,7 +88,7 @@ export const DashboardPage: React.FC = () => {
             Upcoming deadlines
           </p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">
-            {loading ? <Spinner /> : assignments?.length ?? 0}
+            {loading ? <Spinner /> : upcomingDeadlines}
           </p>
           <p className="mt-1 text-xs text-slate-500">Within your enrolled classes</p>
         </Card>
@@ -104,7 +121,7 @@ export const DashboardPage: React.FC = () => {
                   <p className="text-xs text-slate-500">{c.teacherName}</p>
                 </div>
                 <Link
-                  to={`/classes/${c.id}`}
+                  to={`/class/${c.id}`}
                   className="text-xs font-medium text-primary-600 hover:text-primary-700"
                 >
                   Open

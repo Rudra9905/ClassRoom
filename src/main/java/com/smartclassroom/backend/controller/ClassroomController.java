@@ -61,6 +61,12 @@ public class ClassroomController {
                 .collect(Collectors.toList());
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteClassroom(@PathVariable Long id) {
+        classroomService.deleteClassroom(id);
+    }
+
     private ClassroomResponseDTO toClassroomResponse(Classroom classroom) {
         User teacher = classroom.getTeacher();
         UserResponseDTO teacherDto = UserResponseDTO.builder()
