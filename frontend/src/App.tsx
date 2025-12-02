@@ -10,6 +10,7 @@ import { ClassDetailPage } from './pages/classes/ClassDetailPage';
 import { AssignmentsPage } from './pages/assignments/AssignmentsPage';
 import { AssignmentDetailPage } from './pages/assignments/AssignmentDetailPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
+import { MeetingPage } from './pages/meeting/MeetingPage';
 import { useAuth } from './hooks/useAuth';
 
 interface ProtectedRouteProps {
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/assignments" element={<AssignmentsPage />} />
         <Route path="/assignments/:id" element={<AssignmentDetailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/meet/:meetingCode" element={<MeetingPage />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
