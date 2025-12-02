@@ -29,7 +29,7 @@ public class AnnouncementController {
                                           @RequestParam("authorId") Long authorId,
                                           @Valid @RequestBody AnnouncementCreateRequestDTO request) {
         Announcement announcement = announcementService.createAnnouncement(classroomId, authorId,
-                request.getTitle(), request.getContent());
+                request.getTitle(), request.getContent(), request.getAttachmentUrl());
         return toResponse(announcement);
     }
 
@@ -46,6 +46,20 @@ public class AnnouncementController {
         return toResponse(announcement);
     }
 
+    @DeleteMapping("/{announcementId}/attachment")
+    public AnnouncementResponseDTO clearAttachment(@PathVariable Long classroomId,
+                                                   @PathVariable Long announcementId) {
+        Announcement announcement = announcementService.clearAttachment(announcementId);
+        return toResponse(announcement);
+    }
+
+    @DeleteMapping("/{announcementId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAnnouncement(@PathVariable Long classroomId,
+                                   @PathVariable Long announcementId) {
+        announcementService.deleteAnnouncement(announcementId);
+    }
+
     private AnnouncementResponseDTO toResponse(Announcement announcement) {
         User author = announcement.getAuthor();
         UserResponseDTO authorDto = UserResponseDTO.builder()
@@ -60,6 +74,7 @@ public class AnnouncementController {
                 .author(authorDto)
                 .title(announcement.getTitle())
                 .content(announcement.getContent())
+                .attachmentUrl(announcement.getAttachmentUrl())
                 .createdAt(announcement.getCreatedAt())
                 .build();
     }

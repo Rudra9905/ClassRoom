@@ -41,6 +41,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/classes" element={<ClassesPage />} />
         <Route path="/classes/:id" element={<ClassDetailPage />} />
+        <Route path="/class/:id" element={<ClassDetailPage />} />
         <Route path="/assignments" element={<AssignmentsPage />} />
         <Route path="/assignments/:id" element={<AssignmentDetailPage />} />
         <Route path="/profile" element={<ProfilePage />} />

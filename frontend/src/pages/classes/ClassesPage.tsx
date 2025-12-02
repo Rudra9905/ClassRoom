@@ -57,7 +57,11 @@ export const ClassesPage: React.FC = () => {
       setCreateOpen(false);
       setName('');
       setDescription('');
-      load();
+      await load();
+      // Refresh dashboard if we're on it
+      if (window.location.pathname === '/dashboard') {
+        window.dispatchEvent(new Event('focus'));
+      }
     } catch (e) {
       console.error(e);
       toast.error('Failed to create class');
@@ -125,7 +129,7 @@ export const ClassesPage: React.FC = () => {
           <Card
             key={c.id}
             className="flex cursor-pointer flex-col justify-between hover:-translate-y-0.5 hover:shadow-lg transition"
-            onClick={() => navigate(`/classes/${c.id}`)}
+            onClick={() => navigate(`/class/${c.id}`)}
           >
             <div>
               <h2 className="text-sm font-semibold text-slate-900">{c.name}</h2>
@@ -136,7 +140,15 @@ export const ClassesPage: React.FC = () => {
             </div>
             <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
               <span>Class code: {c.code}</span>
-              <button className="text-primary-600 hover:text-primary-700">Open</button>
+              <button 
+                className="text-primary-600 hover:text-primary-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/class/${c.id}`);
+                }}
+              >
+                Open
+              </button>
             </div>
           </Card>
         ))}

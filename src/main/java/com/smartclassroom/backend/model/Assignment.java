@@ -35,6 +35,9 @@ public class Assignment {
 
     private Integer maxMarks;
 
+    @Column(name = "attachment_url", columnDefinition = "TEXT")
+    private String attachmentUrl;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
