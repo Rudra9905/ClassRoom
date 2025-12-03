@@ -23,9 +23,10 @@ const mapChatMessage = (dto: ChatMessageResponseDTO): ChatMessage => ({
 });
 
 export const chatApi = {
-  async getMessages(classroomId: string): Promise<ChatMessage[]> {
+  async getMessages(classroomId: string, userId: string): Promise<ChatMessage[]> {
     const { data } = await apiClient.get<ChatMessageResponseDTO[]>(
-      `/classrooms/${classroomId}/chat/messages`
+      `/classrooms/${classroomId}/chat/messages`,
+      { params: { userId } }
     );
     return data.map(mapChatMessage);
   },
@@ -40,5 +41,10 @@ export const chatApi = {
       { params: { senderId } }
     );
     return mapChatMessage(data);
+  },
+  async clearMessages(classroomId: string, requesterId: string): Promise<void> {
+    await apiClient.delete(`/classrooms/${classroomId}/chat/messages`, {
+      params: { requesterId },
+    });
   },
 };

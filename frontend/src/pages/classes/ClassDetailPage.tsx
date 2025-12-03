@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Tabs } from '../../components/ui/Tabs';
 import { Card } from '../../components/ui/Card';
@@ -6,11 +6,21 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
 import { Badge } from '../../components/ui/Badge';
+import { Avatar } from '../../components/ui/Avatar';
 import { classroomApi } from '../../services/classroomApi';
 import { chatApi } from '../../services/chatApi';
 import { assignmentApi } from '../../services/assignmentApi';
 import { fileApi } from '../../services/fileApi';
 import { Link } from 'react-router-dom';
+import {
+  PaperAirplaneIcon,
+  PaperClipIcon,
+  FaceSmileIcon,
+  TrashIcon,
+  ArrowDownCircleIcon,
+  CheckIcon,
+  CheckBadgeIcon,
+} from '@heroicons/react/24/solid';
 import type {
   Classroom,
   Announcement,
@@ -43,6 +53,8 @@ export const ClassDetailPage: React.FC = () => {
   const [members, setMembers] = useState<Member[] | null>(null);
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastMessageId, setLastMessageId] = useState<number | null>(null);
 
   const [newAnnouncementTitle, setNewAnnouncementTitle] = useState('');
   const [newAnnouncementContent, setNewAnnouncementContent] = useState('');
@@ -55,33 +67,142 @@ export const ClassDetailPage: React.FC = () => {
   const [assignmentDueDate, setAssignmentDueDate] = useState('');
   const [assignmentMaxMarks, setAssignmentMaxMarks] = useState('');
   const [assignmentFile, setAssignmentFile] = useState<File | null>(null);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setIsAtBottom(true);
+  };
 
   useEffect(() => {
-    if (!id) return;
+    if (activeTab === TAB_IDS.CHAT) {
+      scrollToBottom();
+    }
+  }, [messages, activeTab]);
+
+  // Track scroll position for "scroll to bottom" button
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      if (!el) return;
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setIsAtBottom(distanceFromBottom < 64);
+    };
+
+    el.addEventListener('scroll', handleScroll);
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+  
+  // Live reload: Poll for new messages when chat tab is active
+  useEffect(() => {
+    if (activeTab !== TAB_IDS.CHAT || !id || !user) return;
+
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let isPolling = false;
+
+    const pollMessages = async () => {
+      if (isPolling) return;
+      isPolling = true;
+      setIsRefreshing(true);
+
+      try {
+        const msgs = await chatApi.getMessages(id, user.id);
+        
+        // Check if there are new messages
+        if (msgs.length > 0) {
+          const latestMessageId = parseInt(msgs[msgs.length - 1].id);
+          const hasNewMessages = lastMessageId === null || latestMessageId > lastMessageId;
+          
+          if (hasNewMessages && lastMessageId !== null) {
+            // Only scroll if user is near bottom (within 100px)
+            const messagesContainer = messagesEndRef.current?.parentElement;
+            if (messagesContainer) {
+              const isNearBottom = 
+                messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 100;
+              if (isNearBottom) {
+                setTimeout(() => scrollToBottom(), 100);
+              }
+            }
+          }
+          
+          setLastMessageId(latestMessageId);
+          setMessages(msgs);
+        } else {
+          setMessages([]);
+        }
+      } catch (e: any) {
+        console.error('Failed to poll chat messages:', e);
+      } finally {
+        setIsRefreshing(false);
+        isPolling = false;
+      }
+    };
+
+    // Initial load
+    pollMessages();
+
+    // Set up polling interval (every 2 seconds)
+    pollInterval = setInterval(pollMessages, 2000);
+
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [activeTab, id, user, lastMessageId]);
+
+  useEffect(() => {
+    if (!id || !user) return;
     const load = async () => {
       setLoading(true);
       try {
-        const [cls, anns, asg, mem, msgs] = await Promise.all([
+        const [cls, anns, asg, mem] = await Promise.all([
           classroomApi.getClassroom(id),
           classroomApi.getAnnouncements(id),
           classroomApi.getAssignments(id),
           classroomApi.getMembers(id),
-          chatApi.getMessages(id),
         ]);
         setClassroom(cls);
         setAnnouncements(anns);
         setAssignments(asg);
         setMembers(mem);
-        setMessages(msgs);
       } catch (e) {
         console.error(e);
         toast.error('Failed to load classroom');
       } finally {
         setLoading(false);
       }
+      
+      // Load chat messages separately so failure doesn't break the page
+      try {
+        const msgs = await chatApi.getMessages(id, user.id);
+        setMessages(msgs);
+        // Set last message ID for polling
+        if (msgs.length > 0) {
+          setLastMessageId(parseInt(msgs[msgs.length - 1].id));
+        }
+      } catch (e: any) {
+        console.error('Failed to load chat messages:', e);
+        const errorMessage = e.response?.data?.message || e.message || 'Failed to load chat messages';
+        toast.error(errorMessage);
+        setMessages([]); // Set to empty array instead of null
+      }
     };
     load();
-  }, [id]);
+  }, [id, user]);
 
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,13 +289,62 @@ export const ClassDetailPage: React.FC = () => {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id || !chatInput.trim() || !user) return;
+    const messageContent = chatInput.trim();
+    setChatInput(''); // Clear input immediately for better UX
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
     try {
-      const created = await chatApi.sendMessage(id, user.id, { content: chatInput.trim() });
-      setMessages((prev) => (prev ? [...prev, created] : [created]));
-      setChatInput('');
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to send message');
+      const created = await chatApi.sendMessage(id, user.id, { content: messageContent });
+      setMessages((prev) => {
+        const updated = prev ? [...prev, created] : [created];
+        // Update last message ID
+        if (updated.length > 0) {
+          setLastMessageId(parseInt(updated[updated.length - 1].id));
+        }
+        return updated;
+      });
+      // Scroll to bottom after sending
+      setTimeout(() => scrollToBottom(), 100);
+    } catch (e: any) {
+      console.error('Failed to send message:', e);
+      setChatInput(messageContent); // Restore message on error
+      const errorMessage = e.response?.data?.message || e.message || 'Failed to send message';
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleSendAttachment = async (file: File) => {
+    if (!id || !user) return;
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const allowed = ['pdf', 'zip', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
+    if (!ext || !allowed.includes(ext)) {
+      toast.error('Only PDF, image, or ZIP files are allowed');
+      return;
+    }
+    try {
+      setIsUploadingAttachment(true);
+      const url = await fileApi.upload(file);
+      const content = `${file.name}\n${url}`;
+      const created = await chatApi.sendMessage(id, user.id, { content });
+      setMessages((prev) => {
+        const updated = prev ? [...prev, created] : [created];
+        if (updated.length > 0) {
+          setLastMessageId(parseInt(updated[updated.length - 1].id));
+        }
+        return updated;
+      });
+      setTimeout(() => scrollToBottom(), 100);
+    } catch (e: any) {
+      console.error('Failed to send attachment:', e);
+      const errorMessage = e.response?.data?.message || e.message || 'Failed to send attachment';
+      toast.error(errorMessage);
+    } finally {
+      setIsUploadingAttachment(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -202,6 +372,21 @@ export const ClassDetailPage: React.FC = () => {
       return;
     }
     navigate(`/meet/${trimmed}`);
+  };
+
+  const handleClearChat = async () => {
+    if (!id || !user || !isTeacher) return;
+    if (!confirm('Clear all chat messages for this class? This cannot be undone.')) return;
+    try {
+      await chatApi.clearMessages(id, user.id);
+      setMessages([]);
+      setLastMessageId(null);
+      toast.success('Chat cleared');
+    } catch (e: any) {
+      console.error('Failed to clear chat messages:', e);
+      const errorMessage = e.response?.data?.message || e.message || 'Failed to clear chat';
+      toast.error(errorMessage);
+    }
   };
 
   if (loading) {
@@ -530,32 +715,333 @@ export const ClassDetailPage: React.FC = () => {
       )}
 
       {activeTab === TAB_IDS.CHAT && (
-        <section className="grid h-[480px] grid-rows-[1fr_auto] rounded-2xl bg-white p-4 shadow-soft ring-1 ring-slate-100">
-          <div className="space-y-2 overflow-y-auto pr-1 text-sm">
-            {(!messages || messages.length === 0) && (
-              <p className="text-sm text-slate-500">No messages yet.</p>
-            )}
-            {messages?.map((m) => (
-              <div key={m.id} className="rounded-xl bg-slate-50 px-3 py-2">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span className="font-medium text-slate-800">{m.senderName}</span>
-                  <span>{new Date(m.createdAt).toLocaleTimeString()}</span>
+        <section className="flex h-[600px] flex-col rounded-2xl bg-white/80 shadow-soft ring-1 ring-slate-100 backdrop-blur-sm dark:bg-slate-900/70 dark:ring-slate-700">
+          {/* Chat Top Bar / Nav */}
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 px-4 py-3 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 dark:border-slate-800">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-600/10 text-primary-600 dark:bg-primary-500/10 dark:text-primary-300">
+                  <span className="text-xs font-semibold">CC</span>
                 </div>
-                <p className="mt-1 text-sm text-slate-800">{m.content}</p>
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-semibold text-slate-900 dark:text-slate-50">
+                    {classroom.name} · Class Chat
+                  </h3>
+                  <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                    {classroom.teacherName} · {classroom.code}
+                  </p>
+                </div>
+                {isRefreshing && (
+                  <div className="flex items-center gap-1.5 pl-1">
+                    <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-500 dark:bg-primary-300" />
+                  </div>
+                )}
               </div>
-            ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.25)] dark:shadow-[0_0_0_4px_rgba(45,212,191,0.35)]" />
+              </div>
+              {isTeacher && (
+                <button
+                  type="button"
+                  onClick={handleClearChat}
+                  title="Clear chat"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-red-500/60 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
-          <form className="mt-3 flex gap-2" onSubmit={handleSendMessage}>
-            <input
-              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-primary-500 focus:bg-white focus:ring-1 focus:ring-primary-500"
-              placeholder="Write a message"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-            />
-            <Button type="submit" disabled={!chatInput.trim()}>
-              Send
-            </Button>
+
+          {/* Messages Container */}
+          <div
+            ref={messagesContainerRef}
+            className="relative flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/60 via-slate-50/40 to-white px-3 py-3 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900"
+          >
+            {(!messages || messages.length === 0) && (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <div className="mb-4 rounded-full bg-slate-100 p-6">
+                  <svg
+                    className="h-12 w-12 text-slate-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-slate-700">No messages yet</p>
+                <p className="mt-1 text-xs text-slate-500">Start the conversation!</p>
+              </div>
+            )}
+
+            {messages && messages.length > 0 && (
+              <div className="space-y-4">
+                {Object.entries(
+                  messages.reduce<Record<string, ChatMessage[]>>((groups, m) => {
+                    const d = new Date(m.createdAt);
+                    const key = d.toDateString();
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(m);
+                    return groups;
+                  }, {})
+                ).map(([dateKey, groupMessages]) => {
+                  const dateObj = new Date(groupMessages[0].createdAt);
+                  const label =
+                    dateObj.toDateString() === new Date().toDateString()
+                      ? 'Today'
+                      : dateObj.toDateString();
+                  return (
+                    <div key={dateKey} className="space-y-2">
+                      <div className="sticky top-0 z-10 flex justify-center py-1">
+                        <span className="rounded-full bg-white/80 px-3 py-0.5 text-[11px] font-medium text-slate-500 shadow-sm ring-1 ring-slate-200/70 backdrop-blur-sm dark:bg-slate-800/80 dark:text-slate-300 dark:ring-slate-700">
+                          {label}
+                        </span>
+                      </div>
+                      <div className="space-y-3 px-1">
+                        {groupMessages.map((m, index) => {
+                          const isCurrentUser = m.senderName === user?.name;
+                          const messageDate = new Date(m.createdAt);
+                          const isToday = messageDate.toDateString() === new Date().toDateString();
+                          const isRecent = Date.now() - messageDate.getTime() < 60000;
+                          const timeString = isToday
+                            ? messageDate.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              })
+                            : messageDate.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              });
+                          const globalIndex = messages.findIndex((mm) => mm.id === m.id);
+                          const isLastFromCurrentUser =
+                            isCurrentUser &&
+                            globalIndex !== -1 &&
+                            globalIndex === messages.length - 1;
+                          const statusLabel = isLastFromCurrentUser ? 'Seen' : 'Sent';
+
+                          return (
+                            <div
+                              key={m.id}
+                              className={`flex gap-3 text-sm transition-all duration-200 ${
+                                isCurrentUser ? 'flex-row-reverse' : 'flex-row'
+                              }`}
+                            >
+                              <div className="mt-0.5 flex-shrink-0">
+                                <Avatar name={m.senderName} size="sm" />
+                              </div>
+                              <div
+                                className={`flex max-w-[78%] flex-col ${
+                                  isCurrentUser ? 'items-end' : 'items-start'
+                                }`}
+                              >
+                                <div
+                                  className={`mb-0.5 flex items-center gap-1 text-[11px] ${
+                                    isCurrentUser
+                                      ? 'justify-end text-slate-500 dark:text-slate-400'
+                                      : 'justify-start text-slate-500 dark:text-slate-400'
+                                  }`}
+                                >
+                                  {!isCurrentUser && (
+                                    <span className="font-medium">{m.senderName}</span>
+                                  )}
+                                  <span>·</span>
+                                  <span>{timeString}</span>
+                                </div>
+                                <div
+                                  className={`group relative w-full rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ring-1 transition-all hover:shadow-md ${
+                                    isCurrentUser
+                                      ? 'rounded-br-md bg-gradient-to-br from-primary-600 to-primary-700 text-white ring-primary-500/60 dark:from-primary-500 dark:to-primary-600'
+                                      : 'rounded-bl-md bg-white text-slate-900 ring-slate-200 hover:ring-slate-300 dark:bg-slate-800 dark:text-slate-50 dark:ring-slate-700 dark:hover:ring-slate-500'
+                                  } ${isRecent ? 'ring-2 ring-primary-200 dark:ring-primary-400/60' : ''}`}
+                                >
+                                  <p className="whitespace-pre-wrap break-words leading-relaxed">
+                                    {m.content}
+                                  </p>
+                                </div>
+                                {isCurrentUser && (
+                                  <div className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
+                                    {statusLabel === 'Seen' ? (
+                                      <CheckBadgeIcon className="h-3.5 w-3.5 text-primary-400 dark:text-primary-300" />
+                                    ) : (
+                                      <CheckIcon className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+                                    )}
+                                    <span>{statusLabel}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Typing indicator (local) */}
+            {isTyping && (
+              <div className="mt-2 flex items-center gap-2 px-2 text-[11px] text-slate-400 dark:text-slate-500">
+                <div className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                  <span>Typing</span>
+                  <span className="flex gap-0.5">
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.2s]" />
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.1s]" />
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-slate-400" />
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} className="h-1" />
+
+            {/* Scroll to bottom FAB */}
+            {!isAtBottom && messages && messages.length > 0 && (
+              <button
+                type="button"
+                onClick={scrollToBottom}
+                className="group absolute bottom-3 right-3 inline-flex h-9 items-center justify-center rounded-full bg-white/95 px-3 text-xs font-medium text-slate-600 shadow-lg ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-800 dark:bg-slate-800/95 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-700"
+              >
+                <ArrowDownCircleIcon className="mr-1 h-4 w-4 text-primary-500 group-hover:text-primary-600 dark:text-primary-400" />
+                New messages
+              </button>
+            )}
+          </div>
+
+          {/* Input Area */}
+          <div className="border-t border-slate-200 bg-gradient-to-b from-white/80 to-slate-50/70 p-3 dark:border-slate-800 dark:from-slate-900 dark:to-slate-950">
+            <form
+              className="space-y-1"
+              onSubmit={handleSendMessage}
+            >
+              <div className="relative flex items-end gap-3">
+                <div className="relative flex-1">
+                  <textarea
+                    ref={textareaRef}
+                    className="block w-full resize-none rounded-2xl border border-slate-200 bg-white px-12 py-2.5 text-sm placeholder:text-slate-400 outline-none shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:placeholder:text-slate-500"
+                    placeholder={`Message #${classroom.code} · Type a message, share a file, or add an emoji...`}
+                    value={chatInput}
+                    onChange={(e) => {
+                      setChatInput(e.target.value);
+                      setIsTyping(true);
+                      if (typingTimeoutRef.current) {
+                        window.clearTimeout(typingTimeoutRef.current);
+                      }
+                      typingTimeoutRef.current = window.setTimeout(() => {
+                        setIsTyping(false);
+                      }, 1500);
+                      // Auto-resize textarea
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (chatInput.trim()) {
+                          const formEvent = new Event('submit', { bubbles: true, cancelable: true });
+                          e.currentTarget.closest('form')?.dispatchEvent(formEvent);
+                        }
+                      }
+                    }}
+                    rows={1}
+                    style={{ maxHeight: '120px' }}
+                  />
+
+                  {/* Left input icons */}
+                  <div className="pointer-events-none absolute inset-y-0 left-2 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="pointer-events-auto inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                      title="Attach file"
+                      disabled={isUploadingAttachment}
+                    >
+                      <PaperClipIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEmojiPickerOpen((v) => !v)}
+                      className="pointer-events-auto inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                      title="Add emoji"
+                    >
+                      <FaceSmileIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                {/* Emoji picker (simple) */}
+                {isEmojiPickerOpen && (
+                  <div className="absolute bottom-12 left-0 z-20 w-52 rounded-2xl bg-white p-2 text-base shadow-lg ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700">
+                    <div className="mb-1 px-1 text-[11px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                      Quick emojis
+                    </div>
+                    <div className="grid grid-cols-6 gap-1 text-lg">
+                      {['😀', '😊', '😂', '😍', '👍', '🎉', '🙌', '🤔', '😢', '🔥', '🙏', '📚'].map(
+                        (emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                            onClick={() => {
+                              setChatInput((prev) => `${prev}${emoji}`);
+                              setIsEmojiPickerOpen(false);
+                              textareaRef.current?.focus();
+                            }}
+                          >
+                            {emoji}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Hidden file input for attachments */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="application/pdf,image/*,application/zip"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    void handleSendAttachment(file);
+                  }
+                }}
+              />
+
+              {/* Floating send button */}
+              <div className="relative h-11 w-11 shrink-0">
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim()}
+                  className="group absolute inset-0 flex items-center justify-center rounded-full bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/40 transition-all hover:from-primary-700 hover:to-primary-800 hover:shadow-primary-500/60 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:from-primary-600 disabled:hover:to-primary-700 dark:shadow-primary-500/30 dark:focus:ring-offset-slate-900"
+                  title="Send message (Enter)"
+                >
+                  <PaperAirplaneIcon className="h-5 w-5 -rotate-6 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Helper text row below input */}
+            <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
+              <span className="hidden sm:inline">Press Enter to send · Shift+Enter for new line</span>
+              <span className="sm:hidden">Enter = send</span>
+              <span className="ml-auto hidden pl-4 sm:inline">Messages refresh every 2s</span>
+            </div>
           </form>
+        </div>
         </section>
       )}
 
