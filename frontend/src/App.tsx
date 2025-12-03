@@ -11,6 +11,7 @@ import { AssignmentsPage } from './pages/assignments/AssignmentsPage';
 import { AssignmentDetailPage } from './pages/assignments/AssignmentDetailPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { MeetingPage } from './pages/meeting/MeetingPage';
+import { CalendarPage } from './pages/calendar/CalendarPage';
 import { useAuth } from './hooks/useAuth';
 
 interface ProtectedRouteProps {
@@ -40,6 +41,7 @@ export default function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/classes" element={<ClassesPage />} />
         <Route path="/classes/:id" element={<ClassDetailPage />} />
         <Route path="/class/:id" element={<ClassDetailPage />} />

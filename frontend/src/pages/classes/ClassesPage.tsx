@@ -88,11 +88,12 @@ export const ClassesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Page header similar to Google Classroom "Home" */}
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">My classes</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Classes</h1>
           <p className="mt-1 text-sm text-slate-500">
-            View and manage your classrooms.
+            All the classrooms you teach or are enrolled in.
           </p>
         </div>
         <div className="flex gap-2">
@@ -124,24 +125,40 @@ export const ClassesPage: React.FC = () => {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {/* Class cards redesigned to look like Google Classroom tiles */}
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {classes?.map((c) => (
-          <Card
+          <div
             key={c.id}
-            className="flex cursor-pointer flex-col justify-between hover:-translate-y-0.5 hover:shadow-lg transition"
+            className="group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg"
             onClick={() => navigate(`/class/${c.id}`)}
           >
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900">{c.name}</h2>
-              <p className="mt-1 text-xs text-slate-500">{c.teacherName}</p>
-              {c.description && (
-                <p className="mt-2 line-clamp-2 text-xs text-slate-600">{c.description}</p>
-              )}
+            {/* Banner */}
+            <div className="relative h-28 bg-gradient-to-r from-emerald-700 via-emerald-500 to-cyan-500">
+              <div className="absolute inset-0 opacity-20" style={{
+                backgroundImage:
+                  'radial-gradient(circle at 0 0, white 0, transparent 55%), radial-gradient(circle at 100% 0, white 0, transparent 55%)',
+              }} />
+              <div className="relative flex h-full flex-col justify-between p-4 text-white">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-100">
+                    {c.code}
+                  </p>
+                  <h2 className="mt-1 line-clamp-2 text-lg font-semibold leading-snug">
+                    {c.name}
+                  </h2>
+                </div>
+                <p className="text-xs font-medium text-emerald-50">{c.teacherName}</p>
+              </div>
             </div>
-            <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-              <span>Class code: {c.code}</span>
-              <button 
-                className="text-primary-600 hover:text-primary-700"
+
+            {/* Card footer */}
+            <div className="flex items-center justify-between bg-white px-4 py-3 text-xs text-slate-600">
+              <span className="font-medium text-slate-700">
+                Class code: <span className="font-mono text-slate-800">{c.code}</span>
+              </span>
+              <button
+                className="rounded-full px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/class/${c.id}`);
@@ -150,7 +167,7 @@ export const ClassesPage: React.FC = () => {
                 Open
               </button>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 

@@ -53,6 +53,12 @@ export const DashboardPage: React.FC = () => {
   const upcomingDeadlines =
     assignments?.filter((a) => new Date(a.dueDate) > now).length ?? 0;
 
+  const pendingList =
+    assignments
+      ?.filter((a) => !a.isSubmitted && !a.isPastDeadline)
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .slice(0, 5) ?? [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -64,10 +70,11 @@ export const DashboardPage: React.FC = () => {
         </p>
       </div>
 
+      {/* Overview chips */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            My classes
+            Classes
           </p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">
             {loading ? <Spinner /> : classes?.length ?? 0}
@@ -76,7 +83,7 @@ export const DashboardPage: React.FC = () => {
         </Card>
         <Card>
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Pending assignments
+            To-do
           </p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">
             {loading ? <Spinner /> : pendingAssignments}
@@ -85,88 +92,128 @@ export const DashboardPage: React.FC = () => {
         </Card>
         <Card>
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Upcoming deadlines
+            Upcoming
           </p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">
             {loading ? <Spinner /> : upcomingDeadlines}
           </p>
-          <p className="mt-1 text-xs text-slate-500">Within your enrolled classes</p>
+          <p className="mt-1 text-xs text-slate-500">Assignments with future due dates</p>
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-900">My classes</h2>
+      {/* Main content: class tiles + To-do list */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Class cards, similar to Google Classroom home */}
+        <section className="lg:col-span-2 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-900">Classes</h2>
             <Link
               to="/classes"
-              className="text-xs font-medium text-primary-600 hover:text-primary-700"
+              className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
             >
-              View all
+              View all classes
             </Link>
           </div>
+
           {loading && (
-            <div className="py-6 text-center text-sm text-slate-500">
+            <div className="py-10 text-center text-sm text-slate-500">
               <Spinner />
             </div>
           )}
+
           {!loading && (!classes || classes.length === 0) && (
-            <p className="py-4 text-sm text-slate-500">No classes yet.</p>
+            <p className="text-sm text-slate-500">No classes yet. Create or join one to get started.</p>
           )}
-          <ul className="space-y-3">
-            {classes?.slice(0, 4).map((c) => (
-              <li key={c.id} className="flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-medium text-slate-900">{c.name}</p>
-                  <p className="text-xs text-slate-500">{c.teacherName}</p>
-                </div>
-                <Link
-                  to={`/class/${c.id}`}
-                  className="text-xs font-medium text-primary-600 hover:text-primary-700"
-                >
-                  Open
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {classes?.map((c) => (
+              <div
+                key={c.id}
+                className="group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <Link to={`/class/${c.id}`} className="block h-full">
+                  <div className="relative h-24 bg-gradient-to-r from-emerald-700 via-emerald-500 to-cyan-500">
+                    <div
+                      className="absolute inset-0 opacity-20"
+                      style={{
+                        backgroundImage:
+                          'radial-gradient(circle at 0 0, white 0, transparent 55%), radial-gradient(circle at 100% 0, white 0, transparent 55%)',
+                      }}
+                    />
+                    <div className="relative flex h-full flex-col justify-between p-4 text-white">
+                      <div>
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-100">
+                          {c.code}
+                        </p>
+                        <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-snug">
+                          {c.name}
+                        </h3>
+                      </div>
+                      <p className="text-[11px] font-medium text-emerald-50">{c.teacherName}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between bg-white px-4 py-3 text-xs text-slate-600">
+                    <span className="font-medium text-slate-700">
+                      Class code: <span className="font-mono text-slate-800">{c.code}</span>
+                    </span>
+                    <span className="rounded-full px-3 py-1 text-[11px] font-semibold text-emerald-700 transition group-hover:bg-emerald-50">
+                      Open
+                    </span>
+                  </div>
                 </Link>
-              </li>
+              </div>
             ))}
-          </ul>
-        </Card>
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-900">Upcoming assignments</h2>
-            <Link
-              to="/assignments"
-              className="text-xs font-medium text-primary-600 hover:text-primary-700"
-            >
-              View all
-            </Link>
           </div>
-          {loading && (
-            <div className="py-6 text-center text-sm text-slate-500">
-              <Spinner />
+        </section>
+
+        {/* To-do list (assignments) */}
+        <section>
+          <Card className="flex h-full flex-col">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900">To-do</h2>
+              <Link
+                to="/assignments"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+              >
+                View all
+              </Link>
             </div>
-          )}
-          {!loading && (!assignments || assignments.length === 0) && (
-            <p className="py-4 text-sm text-slate-500">No assignments yet.</p>
-          )}
-          <ul className="space-y-3">
-            {assignments?.slice(0, 5).map((a) => (
-              <li key={a.id} className="flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-medium text-slate-900">{a.title}</p>
-                  <p className="text-xs text-slate-500">
-                    Due {new Date(a.dueDate).toLocaleDateString()}
-                  </p>
-                </div>
-                <Link
-                  to={`/assignments/${a.id}`}
-                  className="text-xs font-medium text-primary-600 hover:text-primary-700"
-                >
-                  Open
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
+
+            {loading && (
+              <div className="py-6 text-center text-sm text-slate-500">
+                <Spinner />
+              </div>
+            )}
+
+            {!loading && pendingList.length === 0 && (
+              <p className="text-sm text-slate-500">No pending assignments. You&apos;re all caught up!</p>
+            )}
+
+            <ul className="space-y-3">
+              {pendingList.map((a) => (
+                <li key={a.id} className="flex items-start justify-between gap-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-900">{a.title}</p>
+                    <p className="truncate text-xs text-slate-500">
+                      {a.classroomName} · Due{' '}
+                      {new Date(a.dueDate).toLocaleDateString()} at{' '}
+                      {new Date(a.dueDate).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                  <Link
+                    to={`/assignments/${a.id}`}
+                    className="shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50"
+                  >
+                    Open
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </section>
       </div>
     </div>
   );

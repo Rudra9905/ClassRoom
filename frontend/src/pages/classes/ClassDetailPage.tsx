@@ -413,38 +413,53 @@ export const ClassDetailPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900">{classroom.name}</h1>
-          <p className="mt-1 text-sm text-slate-500">{classroom.teacherName}</p>
-          {classroom.description && (
-            <p className="mt-2 text-xs text-slate-600 max-w-xl">{classroom.description}</p>
-          )}
-        </div>
-        <div className="space-y-1 text-right text-xs text-slate-500">
-          <p>
-            Class code: <span className="font-mono font-medium">{classroom.code}</span>
-          </p>
-          {!isTeacher && user && (
-            <button
-              type="button"
-              className="mt-1 text-xs text-red-600 hover:text-red-700"
-              onClick={async () => {
-                if (!id || !user) return;
-                if (!confirm('Leave this class? You will lose access to all assignments and materials.')) return;
-                try {
-                  await classroomApi.leaveClassroom(id, user.id);
-                  toast.success('Left class');
-                  navigate('/classes');
-                } catch (err: any) {
-                  console.error(err);
-                  toast.error(err.response?.data?.message || 'Failed to leave class');
-                }
-              }}
-            >
-              Leave class
-            </button>
-          )}
+      {/* Google Classroom-like hero header */}
+      <header className="overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-700 via-emerald-600 to-cyan-500 text-white shadow-md">
+        <div className="relative flex flex-col gap-6 px-6 py-5 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-emerald-100">
+              Class · {classroom.code}
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold leading-snug md:text-3xl">
+              {classroom.name}
+            </h1>
+            <p className="mt-1 text-sm text-emerald-50">{classroom.teacherName}</p>
+            {classroom.description && (
+              <p className="mt-2 max-w-xl text-xs text-emerald-100">
+                {classroom.description}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-3 text-xs text-emerald-50 md:flex-row md:items-center">
+            <div className="rounded-xl bg-emerald-900/20 px-4 py-2 shadow-sm ring-1 ring-emerald-400/40">
+              <p className="text-[11px] uppercase tracking-wide text-emerald-100">
+                Class code
+              </p>
+              <p className="mt-0.5 font-mono text-sm font-semibold text-white">
+                {classroom.code}
+              </p>
+            </div>
+            {!isTeacher && user && (
+              <button
+                type="button"
+                className="rounded-full bg-white/10 px-4 py-1.5 text-[11px] font-semibold text-red-100 backdrop-blur transition hover:bg-white/20"
+                onClick={async () => {
+                  if (!id || !user) return;
+                  if (!confirm('Leave this class? You will lose access to all assignments and materials.')) return;
+                  try {
+                    await classroomApi.leaveClassroom(id, user.id);
+                    toast.success('Left class');
+                    navigate('/classes');
+                  } catch (err: any) {
+                    console.error(err);
+                    toast.error(err.response?.data?.message || 'Failed to leave class');
+                  }
+                }}
+              >
+                Leave class
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
