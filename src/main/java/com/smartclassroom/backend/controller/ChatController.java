@@ -6,7 +6,6 @@ import com.smartclassroom.backend.dto.chat.ChatMessageResponseDTO;
 import com.smartclassroom.backend.model.ChatMessage;
 import com.smartclassroom.backend.model.User;
 import com.smartclassroom.backend.service.ChatService;
-import com.smartclassroom.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
 public class ChatController {
 
     private final ChatService chatService;
-    private final UserService userService;
 
     @PostMapping("/messages")
     @ResponseStatus(HttpStatus.CREATED)
@@ -34,10 +32,18 @@ public class ChatController {
     }
 
     @GetMapping("/messages")
-    public List<ChatMessageResponseDTO> getMessages(@PathVariable Long classroomId) {
-        return chatService.getRecentMessages(classroomId).stream()
+    public List<ChatMessageResponseDTO> getMessages(@PathVariable Long classroomId,
+                                                     @RequestParam("userId") Long userId) {
+        return chatService.getRecentMessages(classroomId, userId).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @DeleteMapping("/messages")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void clearMessages(@PathVariable Long classroomId,
+                              @RequestParam("requesterId") Long requesterId) {
+        chatService.clearMessages(classroomId, requesterId);
     }
 
     private ChatMessageResponseDTO toResponse(ChatMessage message) {

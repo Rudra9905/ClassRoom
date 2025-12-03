@@ -388,7 +388,11 @@ export const ClassDetailPage: React.FC = () => {
       toast.success('Chat cleared');
     } catch (e: any) {
       console.error('Failed to clear chat messages:', e);
-      const errorMessage = e.response?.data?.message || e.message || 'Failed to clear chat';
+      const status = e.response?.status as number | undefined;
+      let errorMessage = (e.response?.data as any)?.message || e.message || 'Failed to clear chat';
+      if (!errorMessage || errorMessage === 'Internal server error' || (status && status >= 500)) {
+        errorMessage = 'Failed to clear chat. Please try again.';
+      }
       toast.error(errorMessage);
     } finally {
       setIsClearingChat(false);
