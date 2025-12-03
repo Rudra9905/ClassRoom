@@ -71,6 +71,7 @@ export const ClassDetailPage: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [isClearingChat, setIsClearingChat] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -87,7 +88,10 @@ export const ClassDetailPage: React.FC = () => {
     if (activeTab === TAB_IDS.CHAT) {
       scrollToBottom();
     }
-  }, [messages, activeTab]);
+  }, [activeTab]);
+
+  // Only auto-scroll on tab change or when user is already near the bottom;
+  // do NOT force-scroll on every messages change to avoid dragging the user.
 
   // Track scroll position for "scroll to bottom" button
   useEffect(() => {
@@ -97,7 +101,7 @@ export const ClassDetailPage: React.FC = () => {
     const handleScroll = () => {
       if (!el) return;
       const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      setIsAtBottom(distanceFromBottom < 64);
+      setIsAtBottom(distanceFromBottom < 8);
     };
 
     el.addEventListener('scroll', handleScroll);
@@ -127,12 +131,10 @@ export const ClassDetailPage: React.FC = () => {
           const hasNewMessages = lastMessageId === null || latestMessageId > lastMessageId;
           
           if (hasNewMessages && lastMessageId !== null) {
-            // Only scroll if user is near bottom (within 100px)
-            const messagesContainer = messagesEndRef.current?.parentElement;
-            if (messagesContainer) {
-              const isNearBottom = 
-                messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 100;
-              if (isNearBottom) {
+            const el2 = messagesContainerRef.current;
+            if (el2) {
+              const nearBottom = el2.scrollHeight - el2.scrollTop - el2.clientHeight < 8;
+              if (nearBottom) {
                 setTimeout(() => scrollToBottom(), 100);
               }
             }
@@ -378,14 +380,18 @@ export const ClassDetailPage: React.FC = () => {
     if (!id || !user || !isTeacher) return;
     if (!confirm('Clear all chat messages for this class? This cannot be undone.')) return;
     try {
+      setIsClearingChat(true);
       await chatApi.clearMessages(id, user.id);
       setMessages([]);
       setLastMessageId(null);
+      setTimeout(() => scrollToBottom(), 50);
       toast.success('Chat cleared');
     } catch (e: any) {
       console.error('Failed to clear chat messages:', e);
       const errorMessage = e.response?.data?.message || e.message || 'Failed to clear chat';
       toast.error(errorMessage);
+    } finally {
+      setIsClearingChat(false);
     }
   };
 
@@ -747,6 +753,7 @@ export const ClassDetailPage: React.FC = () => {
                   type="button"
                   onClick={handleClearChat}
                   title="Clear chat"
+                  disabled={isClearingChat}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-red-500/60 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -830,6 +837,26 @@ export const ClassDetailPage: React.FC = () => {
                             globalIndex === messages.length - 1;
                           const statusLabel = isLastFromCurrentUser ? 'Seen' : 'Sent';
 
+                          // Basic attachment parsing: we encode attachments as "fileName\nurl"
+                          const lines = m.content.split('\n').map((l) => l.trim()).filter(Boolean);
+                          let attachmentType: 'image' | 'file' | null = null;
+                          let attachmentName: string | null = null;
+                          let attachmentUrl: string | null = null;
+
+                          if (lines.length === 2 && /^https?:\/\//i.test(lines[1])) {
+                            const name = lines[0];
+                            const url = lines[1];
+                            const ext = name.split('.').pop()?.toLowerCase();
+                            const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                            if (ext && imageExts.includes(ext)) {
+                              attachmentType = 'image';
+                            } else {
+                              attachmentType = 'file';
+                            }
+                            attachmentName = name;
+                            attachmentUrl = url;
+                          }
+
                           return (
                             <div
                               key={m.id}
@@ -865,9 +892,69 @@ export const ClassDetailPage: React.FC = () => {
                                       : 'rounded-bl-md bg-white text-slate-900 ring-slate-200 hover:ring-slate-300 dark:bg-slate-800 dark:text-slate-50 dark:ring-slate-700 dark:hover:ring-slate-500'
                                   } ${isRecent ? 'ring-2 ring-primary-200 dark:ring-primary-400/60' : ''}`}
                                 >
-                                  <p className="whitespace-pre-wrap break-words leading-relaxed">
-                                    {m.content}
-                                  </p>
+                                  {attachmentType === 'image' && attachmentUrl && attachmentName ? (
+                                    <div className="space-y-2">
+                                      <a
+                                        href={attachmentUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-900"
+                                      >
+                                        <img
+                                          src={attachmentUrl}
+                                          alt={attachmentName}
+                                          className="max-h-64 w-full object-contain"
+                                        />
+                                      </a>
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="truncate opacity-90">{attachmentName}</span>
+                                        <a
+                                          href={attachmentUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm ${
+                                            isCurrentUser
+                                              ? 'bg-white/10 text-white hover:bg-white/20'
+                                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-50 dark:hover:bg-slate-600'
+                                          }`}
+                                        >
+                                          View
+                                        </a>
+                                      </div>
+                                    </div>
+                                  ) : attachmentType === 'file' && attachmentUrl && attachmentName ? (
+                                    <div className="flex items-center gap-3">
+                                      <div
+                                        className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${
+                                          isCurrentUser
+                                            ? 'bg-primary-500/20 text-white'
+                                            : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-100'
+                                        }`}
+                                      >
+                                        <PaperClipIcon className="h-4 w-4" />
+                                      </div>
+                                      <div className="min-w-0 flex-1 text-xs">
+                                        <p className="truncate font-medium">{attachmentName}</p>
+                                        <p className="text-[11px] opacity-70">Document</p>
+                                      </div>
+                                      <a
+                                        href={attachmentUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={`flex items-center justify-center rounded-full px-2 py-1 text-[11px] font-medium shadow-sm ${
+                                          isCurrentUser
+                                            ? 'bg-white/10 text-white hover:bg-white/20'
+                                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-50 dark:hover:bg-slate-600'
+                                        }`}
+                                      >
+                                        Download
+                                      </a>
+                                    </div>
+                                  ) : (
+                                    <p className="whitespace-pre-wrap break-words leading-relaxed">
+                                      {m.content}
+                                    </p>
+                                  )}
                                 </div>
                                 {isCurrentUser && (
                                   <div className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
@@ -929,7 +1016,7 @@ export const ClassDetailPage: React.FC = () => {
                 <div className="relative flex-1">
                   <textarea
                     ref={textareaRef}
-                    className="block w-full resize-none rounded-2xl border border-slate-200 bg-white px-12 py-2.5 text-sm placeholder:text-slate-400 outline-none shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:placeholder:text-slate-500"
+                    className="block w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-2.5 pr-12 text-sm placeholder:text-slate-400 outline-none shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:placeholder:text-slate-500"
                     placeholder={`Message #${classroom.code} · Type a message, share a file, or add an emoji...`}
                     value={chatInput}
                     onChange={(e) => {
@@ -958,8 +1045,8 @@ export const ClassDetailPage: React.FC = () => {
                     style={{ maxHeight: '120px' }}
                   />
 
-                  {/* Left input icons */}
-                  <div className="pointer-events-none absolute inset-y-0 left-2 flex items-center gap-1.5">
+                  {/* Right input icons */}
+                  <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}

@@ -15,6 +15,12 @@ import {
   PhoneXMarkIcon,
   VideoCameraIcon,
 } from '@heroicons/react/24/outline';
+import {
+  ChatBubbleLeftRightIcon,
+  EllipsisHorizontalIcon,
+  UserGroupIcon,
+  Cog6ToothIcon,
+} from '@heroicons/react/24/solid';
 
 interface VideoTileProps {
   userLabel: string;
@@ -67,6 +73,8 @@ export const MeetingPage: React.FC = () => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [raisedHands, setRaisedHands] = useState<Set<string>>(new Set());
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showParticipantsPanel, setShowParticipantsPanel] = useState(false);
+  const [showChatPanel, setShowChatPanel] = useState(false);
 
   const meetingClientRef = React.useRef<MeetingClient | null>(null);
   const cameraStreamRef = React.useRef<MediaStream | null>(null);
@@ -259,140 +267,267 @@ export const MeetingPage: React.FC = () => {
   };
 
   const title = `Meeting ${meetingCode}`;
+  const participantCount =
+    (localStream ? 1 : 0) + remoteStreams.length;
+  const timeString = new Date().toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   return (
     <div
       ref={meetingContainerRef}
-      className="flex h-screen flex-col bg-slate-900 text-slate-50"
+      className="flex h-screen flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50"
     >
-      <header className="flex items-center justify-between border-b border-slate-800 px-4 py-3 md:px-6">
-        <div>
-          <h1 className="text-sm font-medium text-slate-200">{title}</h1>
-          <p className="mt-0.5 text-xs text-slate-400">
-            Code: <span className="font-mono">{meetingCode}</span>
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          type="button"
-          onClick={handleStartCamera}
-          className="rounded-full border-slate-700 bg-slate-800/80 px-3 py-1 text-xs text-slate-100 hover:bg-slate-700"
-        >
-          Start camera
-        </Button>
-      </header>
-
-      <main className="flex flex-1 flex-col gap-4 px-4 pb-28 pt-4 md:px-8">
-        <div className="flex-1 rounded-3xl border border-slate-800 bg-slate-900/60 p-3 md:p-4">
-          <div className="grid h-full auto-rows-[minmax(0,1fr)] gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {localStream && (
-              <VideoTile userLabel="You" stream={localStream} isMuted={!micEnabled} />
-            )}
-            {remoteStreams.map((p) => (
-              <VideoTile
-                key={p.userId}
-                userLabel={raisedHands.has(p.userId) ? `${p.userId} ✋` : p.userId}
-                stream={p.stream}
-              />
-            ))}
-            {!localStream && remoteStreams.length === 0 && (
-              <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-4 text-center text-sm text-slate-400">
-                Start your camera and join the meeting to see participants here.
+      {/* Top bar with meeting info */}
+      <header className="flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/80 md:px-6">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-xs font-semibold text-slate-50 shadow-sm dark:bg-slate-50 dark:text-slate-900">
+              {title.charAt(0)}
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold text-slate-900 dark:text-slate-50">
+                {title}
+              </h1>
+              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/40">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Ongoing
+                </span>
+                <span>{timeString}</span>
+                <span>·</span>
+                <span>{participantCount || 1} participant{(participantCount || 1) !== 1 ? 's' : ''}</span>
               </div>
-            )}
+            </div>
           </div>
         </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden text-[11px] text-slate-500 dark:text-slate-400 sm:flex sm:flex-col sm:items-end">
+            <span className="uppercase tracking-wide">Meeting code</span>
+            <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-100">
+              {meetingCode}
+            </span>
+          </div>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={handleStartCamera}
+            className="rounded-full border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800 shadow-sm hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+          >
+            Start camera
+          </Button>
+        </div>
+      </header>
+
+      {/* Main content area */}
+      <main className="relative flex flex-1 gap-3 px-3 pb-28 pt-3 md:px-5 md:pb-28 md:pt-4">
+        {/* Video grid */}
+        <div className="flex-1 overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+          <div className="flex h-full flex-col">
+            <div className="flex-1 p-2 sm:p-3 md:p-4">
+              <div className="grid h-full auto-rows-[minmax(0,1fr)] gap-2 sm:gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {localStream && (
+                  <VideoTile userLabel="You" stream={localStream} isMuted={!micEnabled} />
+                )}
+                {remoteStreams.map((p) => (
+                  <VideoTile
+                    key={p.userId}
+                    userLabel={raisedHands.has(p.userId) ? `${p.userId} ✋` : p.userId}
+                    stream={p.stream}
+                  />
+                ))}
+                {!localStream && remoteStreams.length === 0 && (
+                  <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+                    <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-200 text-2xl font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
+                    </div>
+                    <p className="font-medium">You’re the first one here</p>
+                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                      Start your camera and join the meeting to see participants here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Optional side panels (participants / chat) */}
+        {(showParticipantsPanel || showChatPanel) && (
+          <aside className="hidden w-72 flex-shrink-0 flex-col rounded-3xl bg-white p-3 text-sm shadow-lg ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 md:flex">
+            {showParticipantsPanel && (
+              <div className="mb-3 border-b border-slate-200 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                Participants ({participantCount || 1})
+              </div>
+            )}
+            {showParticipantsPanel && (
+              <div className="mb-4 space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-2 py-1.5 dark:bg-slate-800/70">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-slate-50 dark:bg-slate-100 dark:text-slate-900">
+                      {user?.name?.charAt(0)?.toUpperCase() ?? 'Y'}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium">{user?.name ?? 'You'}</p>
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-300">You</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                    Host
+                  </span>
+                </div>
+                {remoteStreams.length === 0 && (
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                    Others will appear here as they join.
+                  </p>
+                )}
+              </div>
+            )}
+            {showChatPanel && (
+              <>
+                <div className="mb-3 border-b border-slate-200 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  In-call messages
+                </div>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                  Chat is not fully implemented yet. Use the class chat tab for rich messaging.
+                </p>
+              </>
+            )}
+          </aside>
+        )}
       </main>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 flex justify-center px-4">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-slate-700 bg-slate-900/95 px-3 py-2 shadow-2xl">
-          <Button
-            type="button"
-            onClick={handleJoin}
-            disabled={joining}
-            className="h-10 rounded-full bg-slate-100 px-4 text-xs font-medium text-slate-900 hover:bg-white"
-          >
-            {joining ? (
-              <span className="inline-flex items-center gap-2">
-                <Spinner size="sm" /> Joining...
-              </span>
-            ) : (
-              'Join'
-            )}
-          </Button>
+      {/* Floating control bar */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 flex justify-center px-3 md:px-4">
+        <div className="pointer-events-auto flex w-full max-w-3xl items-center justify-between rounded-full bg-white/95 px-3 py-2 shadow-xl shadow-slate-500/20 ring-1 ring-slate-200 backdrop-blur dark:bg-slate-900/95 dark:ring-slate-700">
+          {/* Left side: join + media controls */}
+          <div className="flex items-center gap-2 md:gap-3">
+            <Button
+              type="button"
+              onClick={handleJoin}
+              disabled={joining}
+              className="h-9 rounded-full bg-slate-900 px-4 text-xs font-medium text-slate-50 shadow-sm hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+            >
+              {joining ? (
+                <span className="inline-flex items-center gap-2">
+                  <Spinner size="sm" /> Joining...
+                </span>
+              ) : (
+                'Join now'
+              )}
+            </Button>
 
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={toggleMic}
-            className={clsx(
-              'flex h-10 w-10 items-center justify-center rounded-full p-0',
-              !micEnabled && 'bg-red-600 text-white hover:bg-red-700'
-            )}
-            title={micEnabled ? 'Mute microphone' : 'Unmute microphone'}
-          >
-            <MicrophoneIcon className="h-5 w-5" />
-          </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={toggleMic}
+              className={clsx(
+                'flex h-9 w-9 items-center justify-center rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+                !micEnabled && 'bg-red-500 text-white hover:bg-red-600'
+              )}
+              title={micEnabled ? 'Mute microphone' : 'Unmute microphone'}
+            >
+              <MicrophoneIcon className="h-5 w-5" />
+            </Button>
 
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={toggleCamera}
-            className={clsx(
-              'flex h-10 w-10 items-center justify-center rounded-full p-0',
-              !cameraEnabled && 'bg-red-600 text-white hover:bg-red-700'
-            )}
-            title={cameraEnabled ? 'Turn off camera' : 'Turn on camera'}
-          >
-            <VideoCameraIcon className="h-5 w-5" />
-          </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={toggleCamera}
+              className={clsx(
+                'flex h-9 w-9 items-center justify-center rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+                !cameraEnabled && 'bg-red-500 text-white hover:bg-red-600'
+              )}
+              title={cameraEnabled ? 'Turn off camera' : 'Turn on camera'}
+            >
+              <VideoCameraIcon className="h-5 w-5" />
+            </Button>
 
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-            className="flex h-10 w-10 items-center justify-center rounded-full p-0"
-            title={isScreenSharing ? 'Stop presenting' : 'Present screen'}
-          >
-            <ComputerDesktopIcon className="h-5 w-5" />
-          </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+              className="flex h-9 w-9 items-center justify-center rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              title={isScreenSharing ? 'Stop presenting' : 'Present screen'}
+            >
+              <ComputerDesktopIcon className="h-5 w-5" />
+            </Button>
 
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={toggleRaiseHand}
-            className={clsx(
-              'flex h-10 w-10 items-center justify-center rounded-full p-0',
-              raisedHands.has(String(user?.id ?? '')) &&
-                'bg-amber-500 text-slate-900 hover:bg-amber-600'
-            )}
-            title="Raise hand"
-          >
-            <HandRaisedIcon className="h-5 w-5" />
-          </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={toggleRaiseHand}
+              className={clsx(
+                'flex h-9 w-9 items-center justify-center rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+                raisedHands.has(String(user?.id ?? '')) &&
+                  'bg-emerald-500 text-white hover:bg-emerald-600'
+              )}
+              title="Raise hand"
+            >
+              <HandRaisedIcon className="h-5 w-5" />
+            </Button>
+          </div>
 
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={toggleFullscreen}
-            className="flex h-10 w-10 items-center justify-center rounded-full p-0"
-            title={isFullscreen ? 'Exit full screen' : 'Full screen'}
-          >
-            {isFullscreen ? (
-              <ArrowsPointingInIcon className="h-5 w-5" />
-            ) : (
-              <ArrowsPointingOutIcon className="h-5 w-5" />
-            )}
-          </Button>
+          {/* Middle: participants / chat / more */}
+          <div className="hidden items-center gap-2 md:flex">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowParticipantsPanel((v) => !v)}
+              className={clsx(
+                'flex h-9 w-9 items-center justify-center rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+                showParticipantsPanel && 'bg-blue-500 text-white hover:bg-blue-600'
+              )}
+              title="Show participants"
+            >
+              <UserGroupIcon className="h-5 w-5" />
+            </Button>
 
-          <Button
-            type="button"
-            onClick={handleLeave}
-            className="flex h-10 w-12 items-center justify-center rounded-full bg-red-600 p-0 text-white hover:bg-red-700"
-            title="Leave call"
-          >
-            <PhoneXMarkIcon className="h-5 w-5" />
-          </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowChatPanel((v) => !v)}
+              className={clsx(
+                'flex h-9 w-9 items-center justify-center rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+                showChatPanel && 'bg-blue-500 text-white hover:bg-blue-600'
+              )}
+              title="Open meeting chat"
+            >
+              <ChatBubbleLeftRightIcon className="h-5 w-5" />
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex h-9 w-9 items-center justify-center rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              title="More options (captions, settings)"
+            >
+              <EllipsisHorizontalIcon className="h-5 w-5" />
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex h-9 w-9 items-center justify-center rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              title="Settings"
+            >
+              <Cog6ToothIcon className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Right: leave button */}
+          <div className="flex items-center justify-end">
+            <Button
+              type="button"
+              onClick={handleLeave}
+              className="flex h-9 items-center justify-center rounded-full bg-red-600 px-4 text-xs font-semibold text-white shadow-sm hover:bg-red-700"
+              title="Leave call"
+            >
+              <PhoneXMarkIcon className="mr-1.5 h-4 w-4" />
+              Leave
+            </Button>
+          </div>
         </div>
       </div>
     </div>
