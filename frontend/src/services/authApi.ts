@@ -7,7 +7,8 @@ interface LoginPayload {
 }
 
 interface LoginResponse {
-  token: string;
+  // Backend currently returns `token: null`, so keep this nullable.
+  token: string | null;
   user: User;
 }
 

@@ -20,25 +20,31 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const STORAGE_KEY = 'smart-classroom-auth';
 
+const loadStoredAuth = (): { user: User | null; token: string | null } => {
+  if (typeof window === 'undefined') {
+    return { user: null, token: null };
+  }
+
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return { user: null, token: null };
+
+  try {
+    const parsed = JSON.parse(stored) as { user: User; token: string | null };
+    return { user: parsed.user ?? null, token: parsed.token ?? null };
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return { user: null, token: null };
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [{ user, token }, setAuthState] = useState<{ user: User | null; token: string | null }>(() =>
+    loadStoredAuth()
+  );
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as { user: User; token: string };
-        setUser(parsed.user);
-        setToken(parsed.token);
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user && token) {
+    // Persist auth state as long as a user is present, even if we don't yet use a real token.
+    if (user) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }));
     } else {
       localStorage.removeItem(STORAGE_KEY);
@@ -46,13 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user, token]);
 
   const login = (u: User, t: string) => {
-    setUser(u);
-    setToken(t);
+    setAuthState({ user: u, token: t });
   };
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
+    setAuthState({ user: null, token: null });
   };
 
   return (
