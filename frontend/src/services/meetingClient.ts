@@ -1,5 +1,7 @@
 import type { User } from '../types/domain';
 
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.host}/ws`;
+
 export type MeetingSignalMessage = {
   type: string;
   classroomId: string;
@@ -97,6 +99,7 @@ export function createMeetingClient(options: MeetingClientOptions): MeetingClien
 
   function updateSendersForNewStream() {
     if (!localStream) return;
+    
     const videoTrack = localStream.getVideoTracks()[0];
     const audioTrack = localStream.getAudioTracks()[0];
 
@@ -108,22 +111,34 @@ export function createMeetingClient(options: MeetingClientOptions): MeetingClien
       senders.forEach((sender) => {
         if (sender.track?.kind === 'video') {
           hasVideoSender = true;
-          sender.replaceTrack(videoTrack ?? null).catch((err) =>
-            console.error('Error replacing video track', err)
-          );
+          if (videoTrack) {
+            sender.replaceTrack(videoTrack).catch((err) =>
+              console.error('Error replacing video track', err)
+            );
+          } else {
+            sender.replaceTrack(null).catch((err) =>
+              console.error('Error removing video track', err)
+            );
+          }
         }
         if (sender.track?.kind === 'audio') {
           hasAudioSender = true;
-          sender.replaceTrack(audioTrack ?? null).catch((err) =>
-            console.error('Error replacing audio track', err)
-          );
+          if (audioTrack) {
+            sender.replaceTrack(audioTrack).catch((err) =>
+              console.error('Error replacing audio track', err)
+            );
+          } else {
+            sender.replaceTrack(null).catch((err) =>
+              console.error('Error removing audio track', err)
+            );
+          }
         }
       });
 
-      if (!hasVideoSender && videoTrack) {
+      if (!hasVideoSender && videoTrack && localStream) {
         pc.addTrack(videoTrack, localStream);
       }
-      if (!hasAudioSender && audioTrack) {
+      if (!hasAudioSender && audioTrack && localStream) {
         pc.addTrack(audioTrack, localStream);
       }
     });
@@ -229,7 +244,9 @@ export function createMeetingClient(options: MeetingClientOptions): MeetingClien
     join() {
       if (socket && socket.readyState === WebSocket.OPEN) return;
 
-      socket = new WebSocket('ws://localhost:8080/ws/meet');
+      const wsUrl = `${WS_BASE_URL}/meet`;
+      console.log('Connecting to WebSocket:', wsUrl);
+      socket = new WebSocket(wsUrl);
       socket.onopen = () => {
         const joinMsg: MeetingSignalMessage = {
           type: 'join',

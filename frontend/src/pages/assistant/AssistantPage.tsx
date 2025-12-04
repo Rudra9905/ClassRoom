@@ -365,7 +365,7 @@ export const AssistantPage: React.FC = () => {
                   <div
                     className={`max-w-[75%] rounded-2xl px-3 py-2 text-xs shadow-sm ${
                       m.sender === 'user'
-                        ? 'bg-emerald-600 text-white'
+                        ? 'bg-blue-600 text-white'
                         : 'bg-slate-100 text-slate-900'
                     }`}
                   >
@@ -382,7 +382,7 @@ export const AssistantPage: React.FC = () => {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask the chatbot about your assignments..."
               />
-              <Button type="submit" size="md" disabled={loading}>
+              <Button type="submit" size="md" disabled={loading} className="hover:shadow-md hover:shadow-blue-200 transition-shadow">
                 Ask
               </Button>
             </form>
