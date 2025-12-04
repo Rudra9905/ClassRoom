@@ -8,6 +8,7 @@ import {
   Cog6ToothIcon,
   AcademicCapIcon,
   ChevronRightIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import type { Classroom } from '../../types/domain';
 import { useAuth } from '../../hooks/useAuth';
@@ -16,6 +17,7 @@ import { classroomApi } from '../../services/classroomApi';
 const primaryNav = [
   { to: '/dashboard', label: 'Home', icon: HomeIcon },
   { to: '/calendar', label: 'Calendar', icon: CalendarDaysIcon },
+  { to: '/assistant', label: 'Chatbot', icon: ChatBubbleLeftRightIcon },
 ];
 
 interface SidebarProps {
