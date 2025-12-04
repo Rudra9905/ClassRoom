@@ -697,15 +697,49 @@ export const ClassDetailPage: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge variant={a.status === 'OPEN' ? 'success' : 'default'}>
-                    {a.status ?? 'OPEN'}
-                  </Badge>
-                  <Link
-                    to={`/assignments/${a.id}`}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-                  >
-                    OPEN
-                  </Link>
+                  {isTeacher ? (
+                    <>
+                      <Link
+                        to={`/assignments/${a.id}`}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                      >
+                        OPEN
+                      </Link>
+                      <button
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          if (!id || !user) {
+                            toast.error('Missing classroom or user information');
+                            return;
+                          }
+                          if (confirm('Are you sure you want to delete this assignment? This action cannot be undone.')) {
+                            try {
+                              await assignmentApi.deleteAssignment(id, a.id, user.id);
+                              setAssignments((prev) => prev?.filter((asg) => asg.id !== a.id) || null);
+                              toast.success('Assignment deleted');
+                            } catch (error: any) {
+                              console.error('Failed to delete assignment:', error);
+                              const message =
+                                error?.response?.data?.message ||
+                                error?.message ||
+                                'Failed to delete assignment. Please try again.';
+                              toast.error(message);
+                            }
+                          }
+                        }}
+                        className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 shadow-sm transition hover:bg-red-50"
+                      >
+                        DELETE
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      to={`/assignments/${a.id}`}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    >
+                      OPEN
+                    </Link>
+                  )}
                 </div>
               </Card>
             ))}

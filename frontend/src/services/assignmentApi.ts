@@ -80,9 +80,12 @@ export const assignmentApi = {
   },
   async deleteAssignment(
     classroomId: string,
-    assignmentId: string
+    assignmentId: string,
+    teacherId: string
   ): Promise<void> {
-    await apiClient.delete(`/classrooms/${classroomId}/assignments/${assignmentId}`);
+    await apiClient.delete(`/classrooms/${classroomId}/assignments/${assignmentId}` , {
+      params: { teacherId },
+    });
   },
   async getAssignmentStatistics(
     classroomId: string,
