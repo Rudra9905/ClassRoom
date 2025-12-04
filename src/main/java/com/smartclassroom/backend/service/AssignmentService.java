@@ -219,6 +219,10 @@ public class AssignmentService {
 
     public void deleteAssignment(Long assignmentId) {
         Assignment assignment = getAssignmentById(assignmentId);
+
+        // First delete submissions referencing this assignment to avoid
+        // foreign key constraint violations, then delete the assignment.
+        submissionRepository.deleteAll(submissionRepository.findByAssignmentId(assignmentId));
         assignmentRepository.delete(assignment);
     }
 }
