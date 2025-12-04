@@ -17,7 +17,10 @@ interface MeetingClientOptions {
   user: User;
   onRemoteStream: (userId: string, stream: MediaStream) => void;
   onRemoteStreamRemoved: (userId: string) => void;
+  onParticipantJoined?: (userId: string) => void;
+  onParticipantLeft?: (userId: string) => void;
   onRaiseHand?: (userId: string, raised: boolean) => void;
+  onChatMessage?: (userId: string, userName: string, message: string, timestamp: Date) => void;
 }
 
 export interface MeetingClient {
@@ -25,10 +28,11 @@ export interface MeetingClient {
   join(): void;
   leave(): void;
   raiseHand(raised: boolean): void;
+  sendChatMessage(message: string): void;
 }
 
 export function createMeetingClient(options: MeetingClientOptions): MeetingClient {
-  const { classroomId, user, onRemoteStream, onRemoteStreamRemoved, onRaiseHand } = options;
+  const { classroomId, user, onRemoteStream, onRemoteStreamRemoved, onParticipantJoined, onParticipantLeft, onRaiseHand, onChatMessage } = options;
 
   let socket: WebSocket | null = null;
   let localStream: MediaStream | null = null;
@@ -159,7 +163,10 @@ export function createMeetingClient(options: MeetingClientOptions): MeetingClien
       case 'existing-participants': {
         const participants = (msg.participants ?? []).map(String);
         participants.forEach((remoteId) => {
-          if (remoteId === user.id) return;
+          if (remoteId === String(user.id)) return;
+          if (onParticipantJoined) {
+            onParticipantJoined(remoteId);
+          }
           createPeerConnection(remoteId, true);
         });
         break;
@@ -167,6 +174,9 @@ export function createMeetingClient(options: MeetingClientOptions): MeetingClien
       case 'offer': {
         if (!msg.fromUserId || !msg.payload) return;
         const remoteId = String(msg.fromUserId);
+        if (onParticipantJoined && remoteId !== String(user.id)) {
+          onParticipantJoined(remoteId);
+        }
         const pc = createPeerConnection(remoteId, false);
         pc
           .setRemoteDescription(new RTCSessionDescription(msg.payload))
@@ -204,12 +214,23 @@ export function createMeetingClient(options: MeetingClientOptions): MeetingClien
           .catch((err) => console.error('Error handling ICE candidate', err));
         break;
       }
+      case 'participant-joined': {
+        if (!msg.userId) return;
+        const remoteId = String(msg.userId);
+        if (onParticipantJoined && remoteId !== String(user.id)) {
+          onParticipantJoined(remoteId);
+        }
+        break;
+      }
       case 'participant-left': {
         const remoteId = String(msg.userId ?? '');
         const pc = peers.get(remoteId);
         if (pc) {
           pc.close();
           peers.delete(remoteId);
+        }
+        if (onParticipantLeft) {
+          onParticipantLeft(remoteId);
         }
         onRemoteStreamRemoved(remoteId);
         break;
@@ -218,6 +239,14 @@ export function createMeetingClient(options: MeetingClientOptions): MeetingClien
         if (!onRaiseHand || !msg.fromUserId) return;
         const raised = Boolean(msg.payload?.raised ?? true);
         onRaiseHand(String(msg.fromUserId), raised);
+        break;
+      }
+      case 'chat-message': {
+        if (!onChatMessage || !msg.fromUserId) return;
+        const message = String(msg.payload?.message ?? '');
+        const userName = String(msg.payload?.userName ?? msg.fromUserId);
+        const timestamp = msg.payload?.timestamp ? new Date(msg.payload.timestamp) : new Date();
+        onChatMessage(String(msg.fromUserId), userName, message, timestamp);
         break;
       }
       default:
@@ -278,6 +307,20 @@ export function createMeetingClient(options: MeetingClientOptions): MeetingClien
       send({
         type: 'raise-hand',
         payload: { raised },
+      });
+    },
+    sendChatMessage(message: string) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        console.warn('Cannot send chat message: WebSocket not connected');
+        return;
+      }
+      send({
+        type: 'chat-message',
+        payload: {
+          message,
+          userName: user.name || 'Unknown',
+          timestamp: new Date().toISOString(),
+        },
       });
     },
   };

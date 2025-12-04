@@ -8,6 +8,30 @@ import type {
 } from '../types/domain';
 
 export const assignmentApi = {
+  async createAssignment(
+    classroomId: string,
+    payload: {
+      title: string;
+      description: string;
+      dueDate: string;
+      maxMarks: number;
+      attachmentUrl?: string;
+    }
+  ): Promise<Assignment> {
+    const { data } = await apiClient.post<Assignment>(
+      `/classrooms/${classroomId}/assignments`,
+      payload
+    );
+    return {
+      id: String(data.id),
+      classroomId: String(data.classroomId),
+      title: data.title,
+      description: data.description,
+      dueDate: data.dueDate,
+      maxMarks: data.maxMarks,
+      attachmentUrl: data.attachmentUrl,
+    };
+  },
   async getAssignment(id: string): Promise<Assignment> {
     const { data } = await apiClient.get<any>(`/assignments/${id}`);
     return {

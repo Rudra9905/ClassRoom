@@ -98,4 +98,13 @@
     transform: translateY(-1px);
     box-shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

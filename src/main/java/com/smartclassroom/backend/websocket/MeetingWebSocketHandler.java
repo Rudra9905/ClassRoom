@@ -49,6 +49,7 @@ public class MeetingWebSocketHandler extends TextWebSocketHandler {
             case "join" -> handleJoin(session, node);
             case "offer", "answer", "ice-candidate" -> handleRelay(node);
             case "raise-hand" -> handleRaiseHand(node);
+            case "chat-message" -> handleChatMessage(node);
             case "leave" -> removeSession(session.getId());
             default -> log.warn("Unknown meeting message type: {}", type);
         }
@@ -80,6 +81,23 @@ public class MeetingWebSocketHandler extends TextWebSocketHandler {
         }
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
 
+        // Notify existing participants about the new joiner
+        if (!existingUserIds.isEmpty()) {
+            ObjectNode joinNotification = objectMapper.createObjectNode();
+            joinNotification.put("type", "participant-joined");
+            joinNotification.put("classroomId", classroomId);
+            joinNotification.put("userId", userId);
+            String joinPayload = objectMapper.writeValueAsString(joinNotification);
+            for (Participant existingParticipant : room.values()) {
+                if (existingParticipant.userId() != userId) {
+                    WebSocketSession s = existingParticipant.session();
+                    if (s.isOpen()) {
+                        s.sendMessage(new TextMessage(joinPayload));
+                    }
+                }
+            }
+        }
+
         log.info("User {} joined meeting for classroom {} ({} existing peers)", userId, classroomId, existingUserIds.size());
     }
 
@@ -110,6 +128,22 @@ public class MeetingWebSocketHandler extends TextWebSocketHandler {
         if (room == null) {
             return;
         }
+        String payload = objectMapper.writeValueAsString(node);
+        for (Participant participant : room.values()) {
+            WebSocketSession s = participant.session();
+            if (s.isOpen()) {
+                s.sendMessage(new TextMessage(payload));
+            }
+        }
+    }
+
+    private void handleChatMessage(JsonNode node) throws IOException {
+        long classroomId = node.path("classroomId").asLong();
+        Map<String, Participant> room = rooms.get(classroomId);
+        if (room == null) {
+            return;
+        }
+        // Broadcast chat message to all participants in the room
         String payload = objectMapper.writeValueAsString(node);
         for (Participant participant : room.values()) {
             WebSocketSession s = participant.session();
