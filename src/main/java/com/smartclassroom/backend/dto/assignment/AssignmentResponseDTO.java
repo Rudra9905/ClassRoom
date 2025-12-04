@@ -16,4 +16,6 @@ public class AssignmentResponseDTO {
     private Integer maxMarks;
     private String attachmentUrl;
     private LocalDateTime createdAt;
+    // Indicates whether this assignment is manually closed for submissions
+    private Boolean closed;
 }

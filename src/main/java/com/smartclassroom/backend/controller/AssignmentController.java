@@ -83,6 +83,7 @@ public class AssignmentController {
                 .maxMarks(assignment.getMaxMarks())
                 .attachmentUrl(assignment.getAttachmentUrl())
                 .createdAt(assignment.getCreatedAt())
+                .closed(assignment.getClosed())
                 .build();
     }
 

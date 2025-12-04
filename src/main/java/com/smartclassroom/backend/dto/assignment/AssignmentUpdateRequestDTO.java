@@ -11,6 +11,9 @@ public class AssignmentUpdateRequestDTO {
 
     private String description;
 
+    // Optional flag to explicitly close or reopen an assignment
+    private Boolean closed;
+
     private LocalDateTime dueDate;
 
     private Integer maxMarks;
