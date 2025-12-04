@@ -2,13 +2,15 @@ import React from 'react';
 import clsx from 'clsx';
 
 const baseClasses =
-  'inline-flex items-center justify-center rounded-xl font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex items-center justify-center rounded-[12px] font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:cursor-not-allowed disabled:opacity-60';
 
 const variants = {
-  primary: 'bg-primary-600 text-white hover:bg-primary-700 shadow-soft',
+  primary:
+    'bg-[var(--primary)] text-white shadow-[var(--shadow-soft)] hover:bg-[color-mix(in_oklab,var(--primary)_85%,#0f172a_15%)]',
   secondary:
-    'bg-white text-slate-900 hover:bg-slate-50 border border-slate-200 shadow-sm',
-  ghost: 'bg-transparent text-slate-700 hover:bg-slate-100',
+    'bg-[var(--card)] text-[var(--text)] border border-[var(--border-subtle)] shadow-[var(--shadow-subtle)] hover:bg-[color-mix(in_oklab,var(--card)_85%,var(--light)_15%)]',
+  ghost:
+    'bg-transparent text-[var(--text-secondary)] hover:bg-[color-mix(in_oklab,var(--background)_80%,var(--light)_20%)]',
 };
 
 const sizes = {

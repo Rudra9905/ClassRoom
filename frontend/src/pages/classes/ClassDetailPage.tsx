@@ -413,26 +413,34 @@ export const ClassDetailPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Google Classroom-like hero header */}
-      <header className="overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-700 via-emerald-600 to-cyan-500 text-white shadow-md">
+      {/* Classroom hero header with primary blue gradient */}
+      <header
+        className="overflow-hidden rounded-2xl text-white shadow-md"
+        style={{
+          background:
+            'linear-gradient(135deg, #4f9cff 0%, #3f8cff 50%, #6fb3ff 100%)',
+        }}
+      >
         <div className="relative flex flex-col gap-6 px-6 py-5 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-emerald-100">
+            <p className="text-xs font-medium uppercase tracking-wide text-[color-mix(in_oklab,#e0f2fe_88%,#ffffff_12%)]">
               Class · {classroom.code}
             </p>
             <h1 className="mt-1 text-2xl font-semibold leading-snug md:text-3xl">
               {classroom.name}
             </h1>
-            <p className="mt-1 text-sm text-emerald-50">{classroom.teacherName}</p>
+            <p className="mt-1 text-sm text-[color-mix(in_oklab,#e0f2fe_92%,#ffffff_8%)]">
+              {classroom.teacherName}
+            </p>
             {classroom.description && (
-              <p className="mt-2 max-w-xl text-xs text-emerald-100">
+              <p className="mt-2 max-w-xl text-xs text-[color-mix(in_oklab,#e0f2fe_88%,#ffffff_12%)]">
                 {classroom.description}
               </p>
             )}
           </div>
-          <div className="flex flex-col items-end gap-3 text-xs text-emerald-50 md:flex-row md:items-center">
-            <div className="rounded-xl bg-emerald-900/20 px-4 py-2 shadow-sm ring-1 ring-emerald-400/40">
-              <p className="text-[11px] uppercase tracking-wide text-emerald-100">
+          <div className="flex flex-col items-end gap-3 text-xs text-blue-50 md:flex-row md:items-center">
+            <div className="rounded-xl bg-blue-900/20 px-4 py-2 shadow-sm ring-1 ring-blue-300/60">
+              <p className="text-[11px] uppercase tracking-wide text-blue-100">
                 Class code
               </p>
               <p className="mt-0.5 font-mono text-sm font-semibold text-white">
@@ -491,7 +499,7 @@ export const ClassDetailPage: React.FC = () => {
                     Announcement
                   </label>
                   <textarea
-                    className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                    className="block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] text-[var(--text)]"
                     rows={3}
                     value={newAnnouncementContent}
                     onChange={(e) => setNewAnnouncementContent(e.target.value)}
@@ -505,7 +513,7 @@ export const ClassDetailPage: React.FC = () => {
                   <input
                     type="file"
                     accept="application/pdf,image/*,application/zip"
-                    className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border file:border-slate-200 file:bg-slate-50 file:px-3 file:py-1 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-100"
+                    className="block w-full text-sm text-[var(--text-secondary)] file:mr-3 file:rounded-md file:border file:border-[var(--border-subtle)] file:bg-[var(--light)] file:px-3 file:py-1 file:text-sm file:font-medium file:text-[var(--text)] hover:file:bg-[color-mix(in_oklab,var(--light)_80%,var(--background)_20%)]"
                     onChange={(e) => {
                       const file = e.target.files?.[0] ?? null;
                       setAnnouncementFile(file);
@@ -629,7 +637,7 @@ export const ClassDetailPage: React.FC = () => {
                     Description
                   </label>
                   <textarea
-                    className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                    className="block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] text-[var(--text)]"
                     rows={3}
                     value={assignmentDescription}
                     onChange={(e) => setAssignmentDescription(e.target.value)}
@@ -642,7 +650,7 @@ export const ClassDetailPage: React.FC = () => {
                     </label>
                     <input
                       type="datetime-local"
-                      className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                      className="block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] text-[var(--text)]"
                       value={assignmentDueDate}
                       onChange={(e) => setAssignmentDueDate(e.target.value)}
                       required
@@ -663,7 +671,7 @@ export const ClassDetailPage: React.FC = () => {
                   <input
                     type="file"
                     accept="application/pdf,image/*,application/zip"
-                    className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border file:border-slate-200 file:bg-slate-50 file:px-3 file:py-1 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-100"
+                    className="block w-full text-sm text-[var(--text-secondary)] file:mr-3 file:rounded-md file:border file:border-[var(--border-subtle)] file:bg-[var(--light)] file:px-3 file:py-1 file:text-sm file:font-medium file:text-[var(--text)] hover:file:bg-[color-mix(in_oklab,var(--light)_80%,var(--background)_20%)]"
                     onChange={(e) => {
                       const file = e.target.files?.[0] ?? null;
                       setAssignmentFile(file);

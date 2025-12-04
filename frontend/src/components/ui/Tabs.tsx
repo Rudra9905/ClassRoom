@@ -15,7 +15,7 @@ interface TabsProps {
 
 export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
   return (
-    <div className="border-b border-slate-200">
+    <div className="border-b border-[var(--border-subtle)]">
       <nav className="-mb-px flex gap-6 overflow-x-auto text-sm">
         {tabs.map((tab) => (
           <button
@@ -23,8 +23,8 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
             className={clsx(
               'whitespace-nowrap border-b-2 pb-3 font-medium transition-colors',
               activeTab === tab.id
-                ? 'border-primary-600 text-primary-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'border-[var(--primary)] text-[var(--text)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text)]'
             )}
             onClick={() => onChange(tab.id)}
           >
@@ -34,8 +34,8 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
                 className={clsx(
                   'ml-2 rounded-full px-2 py-0.5 text-xs',
                   activeTab === tab.id
-                    ? 'bg-primary-100 text-primary-700'
-                    : 'bg-slate-100 text-slate-600'
+                    ? 'bg-[color-mix(in_oklab,var(--primary)_18%,var(--background)_82%)] text-[var(--text)]'
+                    : 'bg-[color-mix(in_oklab,var(--background)_90%,var(--light)_10%)] text-[var(--text-secondary)]'
                 )}
               >
                 {tab.count}

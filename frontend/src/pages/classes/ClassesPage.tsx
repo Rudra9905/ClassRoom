@@ -126,7 +126,7 @@ export const ClassesPage: React.FC = () => {
       )}
 
       {/* Class cards redesigned to look like Google Classroom tiles */}
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {classes?.map((c) => (
           <div
             key={c.id}
@@ -134,21 +134,21 @@ export const ClassesPage: React.FC = () => {
             onClick={() => navigate(`/class/${c.id}`)}
           >
             {/* Banner */}
-            <div className="relative h-28 bg-gradient-to-r from-emerald-700 via-emerald-500 to-cyan-500">
+            <div className="relative h-28 bg-gradient-to-r from-[#4f9cff] via-[#3f8cff] to-[#6fb3ff]">
               <div className="absolute inset-0 opacity-20" style={{
                 backgroundImage:
                   'radial-gradient(circle at 0 0, white 0, transparent 55%), radial-gradient(circle at 100% 0, white 0, transparent 55%)',
               }} />
-              <div className="relative flex h-full flex-col justify-between p-4 text-white">
+                <div className="relative flex h-full flex-col justify-between p-4 text-white">
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-100">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-blue-100">
                     {c.code}
                   </p>
                   <h2 className="mt-1 line-clamp-2 text-lg font-semibold leading-snug">
                     {c.name}
                   </h2>
                 </div>
-                <p className="text-xs font-medium text-emerald-50">{c.teacherName}</p>
+                <p className="text-xs font-medium text-blue-50">{c.teacherName}</p>
               </div>
             </div>
 
@@ -158,7 +158,7 @@ export const ClassesPage: React.FC = () => {
                 Class code: <span className="font-mono text-slate-800">{c.code}</span>
               </span>
               <button
-                className="rounded-full px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                className="rounded-full px-3 py-1 text-xs font-semibold text-[#3f8cff] transition hover:bg-blue-50"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/class/${c.id}`);

@@ -6,17 +6,17 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca'
+          50: '#e8f2ff',
+          100: '#d6e7ff',
+          500: '#4f9cff',
+          600: '#3f8cff',
+          700: '#2563eb'
         },
         accent: {
-          50: '#ecfeff',
-          100: '#cffafe',
-          500: '#14b8a6',
-          600: '#0d9488'
+          50: '#e9f4ff',
+          100: '#d3e7ff',
+          500: '#6fb3ff',
+          600: '#4a9bff'
         }
       },
       boxShadow: {

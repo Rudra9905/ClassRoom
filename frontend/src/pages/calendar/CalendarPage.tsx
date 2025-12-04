@@ -171,14 +171,14 @@ export const CalendarPage: React.FC = () => {
                           {isAssignment ? (
                             <Link
                               to={`/assignments/${(ev as AssignmentEvent).assignmentId}`}
-                              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                              className="text-xs font-semibold text-[#3f8cff] hover:text-[#2563eb]"
                             >
                               Open assignment
                             </Link>
                           ) : (
                             <Link
                               to={`/class/${ev.classroomId}`}
-                              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                              className="text-xs font-semibold text-[#3f8cff] hover:text-[#2563eb]"
                             >
                               View in class
                             </Link>

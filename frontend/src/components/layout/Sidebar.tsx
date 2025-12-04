@@ -62,21 +62,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
       {/* Mobile overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-slate-900/30 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
           onClick={onClose}
         />
       )}
 
       {/* Left navigation rail styled like Google Classroom */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white pt-16 shadow-lg transition-transform lg:static lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[var(--card)] pt-16 shadow-lg transition-transform lg:static lg:translate-x-0 lg:shadow-none ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <nav className="flex h-full flex-col justify-between border-r border-slate-100 px-3 pb-4 pt-4 text-sm">
+        <nav className="flex h-full flex-col justify-between border-r border-[var(--border-subtle)] px-3 pb-4 pt-4 text-sm">
           <div className="space-y-4">
             {/* Top navigation (Home, Calendar, Gemini) */}
-            <div className="space-y-1">
+            <div className="space-y-1 text-black">
               {primaryNav.map((item) => (
                 <NavLink
                   key={item.to + item.label}
@@ -84,8 +84,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-full px-3 py-2 font-medium transition-colors ${
                       isActive
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                        ? 'bg-[#e3f0ff] text-black'
+                        : 'text-black hover:bg-[#f1f5ff] hover:text-black'
                     }`
                   }
                   onClick={onClose}
@@ -97,18 +97,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
             </div>
 
             {/* Enrolled section */}
-            <div className="pt-2">
+            <div className="pt-2 text-black">
               <button
                 type="button"
                 onClick={() => setEnrolledOpen((v) => !v)}
                 className={`flex w-full items-center justify-between rounded-full border px-3 py-2 text-left text-sm font-medium shadow-sm transition-colors ${
                   enrolledOpen
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                    : 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100'
+                    ? 'border-[#b3d1ff] bg-[#e3f0ff] text-black'
+                    : 'border-[var(--border-subtle)] bg-white text-black hover:bg-[#f1f5ff]'
                 }`}
               >
                 <span className="flex items-center gap-3">
-                  <AcademicCapIcon className="h-5 w-5 text-slate-600" />
+                  <AcademicCapIcon className="h-5 w-5 text-black" />
                   <span>Enrolled</span>
                 </span>
                 <ChevronRightIcon
@@ -119,14 +119,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
               </button>
 
               {enrolledOpen && (
-                <div className="mt-2 space-y-1 pl-1">
+                    <div className="mt-2 space-y-1 pl-1 text-black">
                   {loadingClasses && (
-                    <div className="rounded-full bg-slate-50 px-3 py-2 text-xs text-slate-400">
+                    <div className="rounded-full bg-[color-mix(in_oklab,var(--background)_90%,var(--light)_10%)] px-3 py-2 text-xs text-[var(--text-secondary)]/70">
                       Loading classes...
                     </div>
                   )}
                   {!loadingClasses && (!classes || classes.length === 0) && (
-                    <div className="rounded-full px-3 py-2 text-xs text-slate-400">
+                    <div className="rounded-full px-3 py-2 text-xs text-[var(--text-secondary)]/70">
                       No classes yet.
                     </div>
                   )}
@@ -137,18 +137,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                       className={({ isActive }) =>
                         `flex items-center gap-3 rounded-full px-3 py-2 text-sm transition-colors ${
                           isActive
-                            ? 'bg-sky-50 text-sky-700'
-                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                            ? 'bg-[#e3f0ff] text-black'
+                            : 'text-black hover:bg-[#f1f5ff] hover:text-black'
                         }`
                       }
                       onClick={onClose}
                     >
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#e5edff] text-xs font-semibold text-black">
                         {getInitials(c.name)}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{c.name}</p>
-                        <p className="truncate text-[11px] text-slate-500">{c.teacherName}</p>
+                        <p className="truncate text-sm font-medium text-black">
+                          {c.name}
+                        </p>
+                        <p className="truncate text-[11px] text-black/70">
+                          {c.teacherName}
+                        </p>
                       </div>
                     </NavLink>
                   ))}
@@ -157,14 +161,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
             </div>
 
             {/* To-do entry */}
-            <div className="pt-2">
+            <div className="pt-2 text-black">
               <NavLink
                 to="/assignments"
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-full px-3 py-2 font-medium transition-colors ${
                     isActive
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                      ? 'bg-[#e3f0ff] text-black'
+                      : 'text-black hover:bg-[#f1f5ff] hover:text-black'
                   }`
                 }
                 onClick={onClose}
@@ -176,14 +180,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
           </div>
 
           {/* Bottom section */}
-          <div className="space-y-1 border-t border-slate-100 pt-3 text-xs">
+          <div className="space-y-1 border-t border-[var(--border-subtle)] pt-3 text-xs text-black">
             <NavLink
               to="/profile"
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-full px-3 py-2 transition-colors ${
                   isActive
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    ? 'bg-[#e3f0ff] text-black'
+                    : 'text-black hover:bg-[#f1f5ff] hover:text-black'
                 }`
               }
               onClick={onClose}

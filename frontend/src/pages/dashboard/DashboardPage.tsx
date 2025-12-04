@@ -75,7 +75,7 @@ export const DashboardPage: React.FC = () => {
             <h2 className="text-sm font-semibold text-slate-900">Classes</h2>
             <Link
               to="/classes"
-              className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+              className="text-xs font-medium text-[#3f8cff] hover:text-[#2563eb]"
             >
               View all classes
             </Link>
@@ -98,7 +98,7 @@ export const DashboardPage: React.FC = () => {
                 className="group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg"
               >
                 <Link to={`/class/${c.id}`} className="block h-full">
-                  <div className="relative h-24 bg-gradient-to-r from-emerald-700 via-emerald-500 to-cyan-500">
+                  <div className="relative h-24 bg-gradient-to-r from-[#4f9cff] via-[#3f8cff] to-[#6fb3ff]">
                     <div
                       className="absolute inset-0 opacity-20"
                       style={{
@@ -108,21 +108,21 @@ export const DashboardPage: React.FC = () => {
                     />
                     <div className="relative flex h-full flex-col justify-between p-4 text-white">
                       <div>
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-100">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-blue-100">
                           {c.code}
                         </p>
                         <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-snug">
                           {c.name}
                         </h3>
                       </div>
-                      <p className="text-[11px] font-medium text-emerald-50">{c.teacherName}</p>
+                      <p className="text-[11px] font-medium text-blue-50">{c.teacherName}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between bg-white px-4 py-3 text-xs text-slate-600">
                     <span className="font-medium text-slate-700">
                       Class code: <span className="font-mono text-slate-800">{c.code}</span>
                     </span>
-                    <span className="rounded-full px-3 py-1 text-[11px] font-semibold text-emerald-700 transition group-hover:bg-emerald-50">
+                    <span className="rounded-full px-3 py-1 text-[11px] font-semibold text-[#3f8cff] transition group-hover:bg-blue-50">
                       Open
                     </span>
                   </div>
@@ -139,7 +139,7 @@ export const DashboardPage: React.FC = () => {
               <h2 className="text-sm font-semibold text-slate-900">To-do</h2>
               <Link
                 to="/assignments"
-                className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                className="text-xs font-medium text-[#3f8cff] hover:text-[#2563eb]"
               >
                 View all
               </Link>
@@ -171,7 +171,7 @@ export const DashboardPage: React.FC = () => {
                   </div>
                   <Link
                     to={`/assignments/${a.id}`}
-                    className="shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50"
+                    className="shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold text-[#3f8cff] hover:bg-blue-50"
                   >
                     Open
                   </Link>

@@ -68,8 +68,8 @@ export const AssignmentsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Assignments</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-xl font-semibold text-[var(--text)]">Assignments</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           All your assignments across classes.
         </p>
       </div>
@@ -81,12 +81,12 @@ export const AssignmentsPage: React.FC = () => {
       />
 
       {loading && (
-        <div className="py-10 text-center text-sm text-slate-500">
+        <div className="py-10 text-center text-sm text-[var(--text-secondary)]">
           <Spinner />
         </div>
       )}
       {!loading && (!filteredAssignments || filteredAssignments.length === 0) && (
-        <p className="text-sm text-slate-500">No assignments found.</p>
+        <p className="text-sm text-[var(--text-secondary)]">No assignments found.</p>
       )}
       <div className="space-y-3">
         {filteredAssignments?.map((a) => {
@@ -95,11 +95,11 @@ export const AssignmentsPage: React.FC = () => {
             <Card key={a.id} className="flex items-center justify-between text-sm">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-slate-900">{a.title}</p>
-                  <span className="text-xs text-slate-400">•</span>
-                  <p className="text-xs text-slate-500">{a.classroomName}</p>
+                  <p className="font-medium text-[var(--text)]">{a.title}</p>
+                  <span className="text-xs text-[var(--text-secondary)]/70">•</span>
+                  <p className="text-xs text-[var(--text-secondary)]">{a.classroomName}</p>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[var(--text-secondary)]">
                   Due {new Date(a.dueDate).toLocaleDateString()} at{' '}
                   {new Date(a.dueDate).toLocaleTimeString([], {
                     hour: '2-digit',
@@ -108,10 +108,10 @@ export const AssignmentsPage: React.FC = () => {
                   · Max {a.maxMarks} marks
                 </p>
                 {a.isSubmitted && (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
                     Submitted on {new Date(a.submittedAt!).toLocaleDateString()}
                     {a.marks != null && (
-                      <span className="ml-2 font-medium text-green-600">
+                      <span className="ml-2 font-medium text-blue-600">
                         Score: {a.marks}/{a.maxMarks}
                       </span>
                     )}
