@@ -44,6 +44,7 @@ public class AssignmentService {
         }
 
         Assignment assignment = Assignment.builder()
+                .closed(false)
                 .classroom(classroom)
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -72,6 +73,9 @@ public class AssignmentService {
         }
         if (request.getDescription() != null) {
             assignment.setDescription(request.getDescription());
+        }
+        if (request.getClosed() != null) {
+            assignment.setClosed(request.getClosed());
         }
         if (request.getDueDate() != null) {
             if (!request.getDueDate().isAfter(LocalDateTime.now())) {
