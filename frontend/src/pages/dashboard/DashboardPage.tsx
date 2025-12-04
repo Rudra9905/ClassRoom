@@ -47,17 +47,14 @@ export const DashboardPage: React.FC = () => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [user]);
 
-  const now = new Date();
-  const pendingAssignments =
-    assignments?.filter((a) => !a.isSubmitted && !a.isPastDeadline).length ?? 0;
-  const upcomingDeadlines =
-    assignments?.filter((a) => new Date(a.dueDate) > now).length ?? 0;
-
   const pendingList =
     assignments
+      // Only show assignments that are still open (not submitted and not past the deadline)
       ?.filter((a) => !a.isSubmitted && !a.isPastDeadline)
+      // Sort by nearest upcoming deadline first
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-      .slice(0, 5) ?? [];
+      // Show only the top 3 as highest priority
+      .slice(0, 3) ?? [];
 
   return (
     <div className="space-y-6">
@@ -68,37 +65,6 @@ export const DashboardPage: React.FC = () => {
         <p className="mt-1 text-sm text-slate-500">
           Here&apos;s what&apos;s happening in your classes.
         </p>
-      </div>
-
-      {/* Overview chips */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Classes
-          </p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">
-            {loading ? <Spinner /> : classes?.length ?? 0}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">Joined or created classrooms</p>
-        </Card>
-        <Card>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            To-do
-          </p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">
-            {loading ? <Spinner /> : pendingAssignments}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">Assignments still open</p>
-        </Card>
-        <Card>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Upcoming
-          </p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">
-            {loading ? <Spinner /> : upcomingDeadlines}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">Assignments with future due dates</p>
-        </Card>
       </div>
 
       {/* Main content: class tiles + To-do list */}
