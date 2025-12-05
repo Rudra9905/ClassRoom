@@ -43,39 +43,80 @@ const ParticipantThumbnail: React.FC<{
   isFullscreen?: boolean;
 }> = ({ participant, stream, isMain = false, onDoubleClick, isFullscreen = false }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasVideo, setHasVideo] = useState(false);
 
   useEffect(() => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
     if (stream) {
-      // Check if stream has video tracks
-      const videoTracks = stream.getVideoTracks();
-      const hasActiveVideo = videoTracks.length > 0 && videoTracks.some(track => track.enabled);
+      // Always set the stream to the video element
+      videoElement.srcObject = stream;
       
-      if (hasActiveVideo) {
-        videoElement.srcObject = stream;
-        // Force video to play
-        videoElement.play().catch(err => {
-          console.error('Error playing video:', err);
-        });
-      } else {
-        videoElement.srcObject = null;
-      }
-    } else {
-      videoElement.srcObject = null;
-    }
+      // Check for video tracks
+      const checkVideoTracks = () => {
+        const videoTracks = stream.getVideoTracks();
+        const hasActiveVideo = videoTracks.length > 0 && videoTracks.some(track => track.enabled);
+        setHasVideo(hasActiveVideo);
+        console.log(`Participant ${participant.name}: hasVideo=${hasActiveVideo}, tracks=${videoTracks.length}, enabled=${videoTracks.filter(t => t.enabled).length}`);
+      };
 
-    // Cleanup
-    return () => {
+      // Initial check
+      checkVideoTracks();
+
+      // Listen for track changes
+      const handleTrackChange = () => {
+        checkVideoTracks();
+      };
+
+      // Listen for when tracks are added to the stream
+      stream.addEventListener('addtrack', (event) => {
+        if (event.track && event.track.kind === 'video') {
+          checkVideoTracks();
+          event.track.addEventListener('ended', handleTrackChange);
+          event.track.addEventListener('mute', handleTrackChange);
+          event.track.addEventListener('unmute', handleTrackChange);
+        }
+      });
+
+      stream.getVideoTracks().forEach(track => {
+        track.addEventListener('ended', handleTrackChange);
+        track.addEventListener('mute', handleTrackChange);
+        track.addEventListener('unmute', handleTrackChange);
+        track.addEventListener('started', handleTrackChange);
+      });
+
+      // Also check periodically in case tracks become active later
+      const intervalId = setInterval(() => {
+        checkVideoTracks();
+      }, 1000);
+
+      // Force video to play
+      videoElement.play().catch(err => {
+        console.error('Error playing video:', err);
+      });
+
+      // Cleanup
+      return () => {
+        clearInterval(intervalId);
+        stream.removeEventListener('addtrack', handleTrackChange);
+        stream.getVideoTracks().forEach(track => {
+          track.removeEventListener('ended', handleTrackChange);
+          track.removeEventListener('mute', handleTrackChange);
+          track.removeEventListener('unmute', handleTrackChange);
+          track.removeEventListener('started', handleTrackChange);
+        });
+        if (videoElement) {
+          videoElement.srcObject = null;
+        }
+      };
+    } else {
+      setHasVideo(false);
       if (videoElement) {
         videoElement.srcObject = null;
       }
-    };
+    }
   }, [stream]);
-
-  // Check if stream has active video tracks
-  const hasVideoTrack = stream?.getVideoTracks().some(track => track.enabled) ?? false;
 
   const getInitials = (name: string) => {
     return name
@@ -95,15 +136,16 @@ const ParticipantThumbnail: React.FC<{
       className={`relative ${sizeClasses} rounded-xl overflow-hidden bg-gray-900 flex items-center justify-center cursor-pointer ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
       onDoubleClick={onDoubleClick}
     >
-      {stream && hasVideoTrack ? (
+      {stream && (
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted={participant.isLocal}
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${hasVideo ? 'block' : 'hidden'}`}
         />
-      ) : (
+      )}
+      {(!stream || !hasVideo) && (
         <div className={`${isMain || isFullscreen ? 'w-32 h-32' : 'w-16 h-16'} rounded-full bg-blue-500 flex items-center justify-center text-white ${isMain || isFullscreen ? 'text-4xl' : 'text-xl'} font-semibold`}>
           {getInitials(participant.name)}
         </div>
@@ -277,6 +319,13 @@ export const MeetingPage: React.FC = () => {
             console.log('Participant left:', userId);
           },
           onRemoteStream: (userId, stream) => {
+            console.log(`Received remote stream from ${userId}:`, {
+              videoTracks: stream.getVideoTracks().length,
+              audioTracks: stream.getAudioTracks().length,
+              videoEnabled: stream.getVideoTracks().some(t => t.enabled),
+              audioEnabled: stream.getAudioTracks().some(t => t.enabled),
+            });
+            
             setRemoteStreams((prev) => {
               const without = prev.filter((p) => p.userId !== userId);
               return [...without, { userId, stream }];
@@ -286,33 +335,6 @@ export const MeetingPage: React.FC = () => {
               const next = new Set(prev);
               next.add(userId);
               return next;
-            });
-            
-            // Listen for track state changes to update UI
-            stream.getVideoTracks().forEach(track => {
-              track.onended = () => {
-                setRemoteStreams((prev) => {
-                  const updated = prev.map(rs => 
-                    rs.userId === userId 
-                      ? { ...rs, stream: new MediaStream(stream.getTracks().filter(t => t !== track)) }
-                      : rs
-                  );
-                  return updated.filter(rs => rs.stream.getTracks().length > 0);
-                });
-              };
-            });
-            
-            stream.getAudioTracks().forEach(track => {
-              track.onended = () => {
-                setRemoteStreams((prev) => {
-                  const updated = prev.map(rs => 
-                    rs.userId === userId 
-                      ? { ...rs, stream: new MediaStream(stream.getTracks().filter(t => t !== track)) }
-                      : rs
-                  );
-                  return updated.filter(rs => rs.stream.getTracks().length > 0);
-                });
-              };
             });
           },
           onRemoteStreamRemoved: (userId) => {
