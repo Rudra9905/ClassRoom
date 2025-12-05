@@ -2,6 +2,7 @@ package com.smartclassroom.backend.service;
 
 import com.smartclassroom.backend.dto.auth.LoginRequestDTO;
 import com.smartclassroom.backend.dto.auth.RegisterRequestDTO;
+import com.smartclassroom.backend.dto.auth.UserUpdateRequestDTO;
 import com.smartclassroom.backend.exception.BadRequestException;
 import com.smartclassroom.backend.exception.DuplicateResourceException;
 import com.smartclassroom.backend.exception.ResourceNotFoundException;
@@ -26,6 +27,9 @@ public class UserService {
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(request.getPassword()) // TODO: hash password
+                .phoneNumber(request.getPhoneNumber())
+                .dateOfBirth(request.getDateOfBirth())
+                .profileImageUrl(request.getProfileImageUrl())
                 .role(request.getRole())
                 .build();
 
@@ -49,5 +53,31 @@ public class UserService {
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    public User updateUser(Long id, UserUpdateRequestDTO request) {
+        User user = getUserById(id);
+
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            user.setName(request.getName().trim());
+        } else if (request.getName() != null) {
+            throw new BadRequestException("Name cannot be empty");
+        }
+        
+        if (request.getPhoneNumber() != null) {
+            String phone = request.getPhoneNumber().trim();
+            user.setPhoneNumber(phone.isEmpty() ? null : phone);
+        }
+        
+        if (request.getDateOfBirth() != null) {
+            user.setDateOfBirth(request.getDateOfBirth());
+        }
+        
+        if (request.getProfileImageUrl() != null) {
+            String url = request.getProfileImageUrl().trim();
+            user.setProfileImageUrl(url.isEmpty() ? null : url);
+        }
+
+        return userRepository.save(user);
     }
 }

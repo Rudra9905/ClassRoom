@@ -15,6 +15,7 @@ export interface Announcement {
   title: string;
   content: string;
   authorName: string;
+  authorProfileImageUrl?: string;
   createdAt: string;
   attachmentUrl?: string;
 }
@@ -69,6 +70,7 @@ export interface Member {
   name: string;
   role: UserRole;
   joinedAt: string;
+  profileImageUrl?: string;
 }
 
 export interface Submission {
@@ -85,6 +87,7 @@ export interface ChatMessage {
   id: string;
   classroomId: string;
   senderName: string;
+  senderProfileImageUrl?: string;
   content: string;
   createdAt: string;
 }

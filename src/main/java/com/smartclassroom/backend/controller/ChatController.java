@@ -53,6 +53,9 @@ public class ChatController {
                 .name(sender.getName())
                 .email(sender.getEmail())
                 .role(sender.getRole())
+                .phoneNumber(sender.getPhoneNumber())
+                .dateOfBirth(sender.getDateOfBirth())
+                .profileImageUrl(sender.getProfileImageUrl())
                 .build();
         return ChatMessageResponseDTO.builder()
                 .id(message.getId())

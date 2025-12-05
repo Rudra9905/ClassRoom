@@ -6,48 +6,38 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "email")
-})
+@Table(name = "audit_logs")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class AuditLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String name;
-
-    @Column(nullable = false, unique = true)
-    private String email;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(nullable = false)
-    private String password;
+    private String action;
 
-    private String phoneNumber;
-
-    private LocalDate dateOfBirth;
-
-    private String profileImageUrl;
-
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserRole role;
+    private String resourceType;
+
+    @Column(nullable = false)
+    private String resourceId;
+
+    @Column(columnDefinition = "TEXT")
+    private String reason;
 
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
 }

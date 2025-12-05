@@ -6,7 +6,6 @@ import com.smartclassroom.backend.dto.auth.UserResponseDTO;
 import com.smartclassroom.backend.model.Announcement;
 import com.smartclassroom.backend.model.User;
 import com.smartclassroom.backend.service.AnnouncementService;
-import com.smartclassroom.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
 public class AnnouncementController {
 
     private final AnnouncementService announcementService;
-    private final UserService userService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -67,6 +65,9 @@ public class AnnouncementController {
                 .name(author.getName())
                 .email(author.getEmail())
                 .role(author.getRole())
+                .phoneNumber(author.getPhoneNumber())
+                .dateOfBirth(author.getDateOfBirth())
+                .profileImageUrl(author.getProfileImageUrl())
                 .build();
         return AnnouncementResponseDTO.builder()
                 .id(announcement.getId())

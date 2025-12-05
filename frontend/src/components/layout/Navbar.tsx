@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { Avatar } from '../ui/Avatar';
+import { Logo } from '../ui/Logo';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/Button';
 
@@ -22,29 +23,25 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
           <Bars3Icon className="h-5 w-5" />
         </button>
 
-        {/* Brand similar to Google Classroom */}
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--primary)] text-sm font-semibold text-white shadow-sm">
-            SC
-          </div>
-          <span className="text-base font-medium tracking-tight text-[var(--text)]">
-            Classroom
-          </span>
-        </div>
+        {/* Brand */}
+        <Logo size="md" showText={true} />
       </div>
 
       {user && (
         <div className="flex items-center gap-3">
           <div className="hidden text-right text-xs sm:block">
-            <div className="font-medium text-[var(--text)]">{user.name}</div>
-            <div className="text-[11px] capitalize text-[var(--text-secondary)] opacity-80">
+            <div className="font-semibold text-black">{user.name}</div>
+            <div className="text-[11px] capitalize text-slate-600">
               {user.role.toLowerCase()}
             </div>
           </div>
-          <Avatar name={user.name} size="sm" />
-          <Button variant="ghost" size="sm" onClick={logout} className="text-xs">
+          <Avatar name={user.name} imageUrl={user.profileImageUrl} size="sm" />
+          <button
+            onClick={logout}
+            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-[#e3f0ff] hover:text-[#3f8cff]"
+          >
             Logout
-          </Button>
+          </button>
         </div>
       )}
     </header>
