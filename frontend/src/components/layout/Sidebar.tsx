@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   HomeIcon,
@@ -31,26 +31,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [enrolledOpen, setEnrolledOpen] = useState(true);
 
+  const classQuery = useMemo(() => {
+    if (!user) return null;
+    return user.role === 'TEACHER'
+      ? { teacherId: user.id }
+      : { studentId: user.id };
+  }, [user?.id, user?.role]);
+
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
-      if (!user) return;
+      if (!classQuery) return;
       setLoadingClasses(true);
       try {
-        // Use the same logic as ClassesPage so the list here matches "My classes".
-        const data = await classroomApi.getClassrooms(
-          user.role === 'TEACHER'
-            ? { teacherId: user.id }
-            : { studentId: user.id }
-        );
-        setClasses(data);
+        const data = await classroomApi.getClassrooms(classQuery);
+        if (!cancelled) {
+          setClasses(data);
+        }
       } catch (e) {
-        console.error('Failed to load sidebar classes', e);
+        if (!cancelled) {
+          console.error('Failed to load sidebar classes', e);
+        }
       } finally {
-        setLoadingClasses(false);
+        if (!cancelled) {
+          setLoadingClasses(false);
+        }
       }
     };
     load();
-  }, [user]);
+    return () => {
+      cancelled = true;
+    };
+  }, [classQuery]);
 
   const getInitials = (name: string) => {
     const parts = name.split(' ').filter(Boolean);
@@ -182,11 +194,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
           </div>
 
           {/* Bottom section */}
-          <div className="space-y-1 border-t border-[var(--border-subtle)] pt-3 text-xs text-black">
+          <div className="space-y-1 border-t border-[var(--border-subtle)] pt-3 text-black">
             <NavLink
               to="/profile"
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-full px-3 py-2 transition-colors ${
+                `flex items-center gap-3 rounded-full px-3 py-2 font-medium transition-colors ${
                   isActive
                     ? 'bg-[#e3f0ff] text-black'
                     : 'text-black hover:bg-[#f1f5ff] hover:text-black'
@@ -194,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
               }
               onClick={onClose}
             >
-              <Cog6ToothIcon className="h-4 w-4" />
+              <Cog6ToothIcon className="h-5 w-5" />
               <span>Settings</span>
             </NavLink>
           </div>

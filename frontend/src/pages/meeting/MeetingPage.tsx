@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { createMeetingClient, type MeetingClient } from '../../services/meetingClient';
 import { classroomApi } from '../../services/classroomApi';
+import { Logo } from '../../components/ui/Logo';
 import type { Classroom } from '../../types/domain';
 import toast from 'react-hot-toast';
 
@@ -624,9 +625,7 @@ export const MeetingPage: React.FC = () => {
       {/* Top Header Bar */}
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500 text-sm font-semibold text-white">
-            SC
-          </div>
+          <Logo size="md" showText={false} />
           <div>
             <h1 className="text-base font-semibold text-gray-900">
               {classroom?.name || 'Meeting'}

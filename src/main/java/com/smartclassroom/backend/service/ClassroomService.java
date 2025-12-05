@@ -6,11 +6,10 @@ import com.smartclassroom.backend.exception.BadRequestException;
 import com.smartclassroom.backend.exception.DuplicateResourceException;
 import com.smartclassroom.backend.exception.ResourceNotFoundException;
 import com.smartclassroom.backend.model.*;
-import com.smartclassroom.backend.repository.ClassroomMemberRepository;
-import com.smartclassroom.backend.repository.ClassroomRepository;
-import com.smartclassroom.backend.repository.UserRepository;
+import com.smartclassroom.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -23,6 +22,10 @@ public class ClassroomService {
     private final ClassroomRepository classroomRepository;
     private final ClassroomMemberRepository classroomMemberRepository;
     private final UserRepository userRepository;
+    private final AssignmentSubmissionRepository assignmentSubmissionRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final AnnouncementRepository announcementRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -95,16 +98,47 @@ public class ClassroomService {
         return classroomMemberRepository.findByClassroomId(classroomId);
     }
 
-    public void deleteClassroom(Long classroomId) {
+    @Transactional
+    public void deleteClassroom(Long classroomId, Long teacherId) {
         Classroom classroom = getClassroomById(classroomId);
-        // Delete all members first (cascade should handle this, but being explicit)
-        classroomMemberRepository.deleteAll(classroomMemberRepository.findByClassroomId(classroomId));
+        if (!classroom.getTeacher().getId().equals(teacherId)) {
+            throw new BadRequestException("Only the classroom teacher can delete this class");
+        }
+        
+        // Delete in correct order to avoid foreign key constraint violations:
+        // 1. Assignment submissions (references assignments)
+        List<Assignment> assignments = assignmentRepository.findByClassroomId(classroomId);
+        for (Assignment assignment : assignments) {
+            assignmentSubmissionRepository.deleteAll(
+                assignmentSubmissionRepository.findByAssignmentId(assignment.getId())
+            );
+        }
+        
+        // 2. Assignments (references classroom)
+        assignmentRepository.deleteAll(assignments);
+        
+        // 3. Announcements (references classroom)
+        announcementRepository.deleteAll(
+            announcementRepository.findByClassroomIdOrderByCreatedAtDesc(classroomId)
+        );
+        
+        // 4. Chat messages (references classroom)
+        chatMessageRepository.deleteAll(
+            chatMessageRepository.findByClassroom_Id(classroomId)
+        );
+        
+        // 5. Classroom members (references classroom)
+        classroomMemberRepository.deleteAll(
+            classroomMemberRepository.findByClassroomId(classroomId)
+        );
+        
+        // 6. Finally, delete the classroom itself
         classroomRepository.delete(classroom);
     }
 
     public void leaveClassroom(Long classroomId, Long userId) {
         Classroom classroom = getClassroomById(classroomId);
-        User user = userRepository.findById(userId)
+        userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
         
         // Check if user is the teacher - teachers cannot leave their own classroom

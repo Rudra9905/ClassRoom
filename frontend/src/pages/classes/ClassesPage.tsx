@@ -20,6 +20,7 @@ export const ClassesPage: React.FC = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [joinCode, setJoinCode] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const isTeacher = user?.role === 'TEACHER';
 
@@ -65,6 +66,26 @@ export const ClassesPage: React.FC = () => {
     } catch (e) {
       console.error(e);
       toast.error('Failed to create class');
+    }
+  };
+
+  const handleDelete = async (classId: string) => {
+    if (!user) {
+      toast.error('You must be logged in to delete a class');
+      return;
+    }
+    const confirmed = window.confirm('Delete this class for everyone? This cannot be undone.');
+    if (!confirmed) return;
+    setDeletingId(classId);
+    try {
+      await classroomApi.deleteClassroom(classId, user.id);
+      toast.success('Class deleted');
+      await load();
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to delete class');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -157,15 +178,29 @@ export const ClassesPage: React.FC = () => {
               <span className="font-medium text-slate-700">
                 Class code: <span className="font-mono text-slate-800">{c.code}</span>
               </span>
-              <button
-                className="rounded-full px-3 py-1 text-xs font-semibold text-[#3f8cff] transition hover:bg-blue-50"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/class/${c.id}`);
-                }}
-              >
-                Open
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  className="rounded-full px-3 py-1 text-xs font-semibold text-[#3f8cff] transition hover:bg-blue-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/class/${c.id}`);
+                  }}
+                >
+                  Open
+                </button>
+                {isTeacher && (
+                  <button
+                    className="rounded-full px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(c.id);
+                    }}
+                    disabled={deletingId === c.id}
+                  >
+                    {deletingId === c.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}

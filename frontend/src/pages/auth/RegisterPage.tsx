@@ -42,7 +42,7 @@ export const RegisterPage: React.FC = () => {
     <div>
       <h2 className="mb-1 text-lg font-semibold text-slate-900">Create account</h2>
       <p className="mb-6 text-sm text-slate-500">
-        Join Smart Classroom as a teacher or student.
+        Join Studify as a teacher or student.
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input

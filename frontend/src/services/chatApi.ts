@@ -9,6 +9,7 @@ type ChatMessageResponseDTO = {
     name: string;
     email: string;
     role: string;
+    profileImageUrl?: string;
   };
   content: string;
   createdAt: string;
@@ -18,6 +19,7 @@ const mapChatMessage = (dto: ChatMessageResponseDTO): ChatMessage => ({
   id: String(dto.id),
   classroomId: String(dto.classroomId),
   senderName: dto.sender.name,
+  senderProfileImageUrl: dto.sender.profileImageUrl,
   content: dto.content,
   createdAt: dto.createdAt,
 });

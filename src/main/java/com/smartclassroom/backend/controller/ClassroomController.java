@@ -6,7 +6,6 @@ import com.smartclassroom.backend.model.Classroom;
 import com.smartclassroom.backend.model.ClassroomMember;
 import com.smartclassroom.backend.model.User;
 import com.smartclassroom.backend.service.ClassroomService;
-import com.smartclassroom.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
 public class ClassroomController {
 
     private final ClassroomService classroomService;
-    private final UserService userService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -63,8 +61,8 @@ public class ClassroomController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteClassroom(@PathVariable Long id) {
-        classroomService.deleteClassroom(id);
+    public void deleteClassroom(@PathVariable Long id, @RequestParam("teacherId") Long teacherId) {
+        classroomService.deleteClassroom(id, teacherId);
     }
 
     @DeleteMapping("/{id}/leave")
@@ -97,6 +95,9 @@ public class ClassroomController {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .phoneNumber(user.getPhoneNumber())
+                .dateOfBirth(user.getDateOfBirth())
+                .profileImageUrl(user.getProfileImageUrl())
                 .build();
         return ClassroomMemberResponseDTO.builder()
                 .id(member.getId())

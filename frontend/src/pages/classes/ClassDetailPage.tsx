@@ -71,6 +71,7 @@ export const ClassDetailPage: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [isDeletingClass, setIsDeletingClass] = useState(false);
   const [isClearingChat, setIsClearingChat] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -376,6 +377,26 @@ export const ClassDetailPage: React.FC = () => {
     navigate(`/meet/${trimmed}`);
   };
 
+  const handleDeleteClass = async () => {
+    if (!id || !user || !isTeacher) return;
+    const confirmed = window.confirm(
+      'Delete this class and remove all enrolled students? This cannot be undone.'
+    );
+    if (!confirmed) return;
+    try {
+      setIsDeletingClass(true);
+      await classroomApi.deleteClassroom(id, user.id);
+      toast.success('Class deleted');
+      navigate('/classes');
+    } catch (e: any) {
+      console.error(e);
+      const message = e.response?.data?.message || e.message || 'Failed to delete class';
+      toast.error(message);
+    } finally {
+      setIsDeletingClass(false);
+    }
+  };
+
   const handleClearChat = async () => {
     if (!id || !user || !isTeacher) return;
     if (!confirm('Clear all chat messages for this class? This cannot be undone.')) return;
@@ -439,13 +460,30 @@ export const ClassDetailPage: React.FC = () => {
             )}
           </div>
           <div className="flex flex-col items-end gap-3 text-xs text-blue-50 md:flex-row md:items-center">
-            <div className="rounded-xl bg-blue-900/20 px-4 py-2 shadow-sm ring-1 ring-blue-300/60">
-              <p className="text-[11px] uppercase tracking-wide text-blue-100">
-                Class code
-              </p>
-              <p className="mt-0.5 font-mono text-sm font-semibold text-white">
-                {classroom.code}
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-blue-900/20 px-4 py-2 shadow-sm ring-1 ring-blue-300/60">
+                <p className="text-[11px] uppercase tracking-wide text-blue-100">
+                  Class code
+                </p>
+                <p className="mt-0.5 font-mono text-sm font-semibold text-white">
+                  {classroom.code}
+                </p>
+              </div>
+              {isTeacher && (
+                <div className="rounded-xl bg-red-900/20 px-4 py-2 shadow-sm ring-1 ring-red-300/60">
+                  <p className="text-[11px] uppercase tracking-wide text-red-100">
+                    Delete class
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleDeleteClass}
+                    disabled={isDeletingClass}
+                    className="mt-0.5 block text-sm font-semibold text-white transition hover:text-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isDeletingClass ? 'Deleting...' : 'Delete Class'}
+                  </button>
+                </div>
+              )}
             </div>
             {!isTeacher && user && (
               <button
@@ -533,33 +571,35 @@ export const ClassDetailPage: React.FC = () => {
           <div className="space-y-3">
             {announcements?.map((a) => (
               <Card key={a.id} className="space-y-1">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <p>
-                    <span className="font-medium text-slate-900">{a.title}</span>  b7{' '}
-                    {a.authorName}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <p>{new Date(a.createdAt).toLocaleString()}</p>
-                    {isTeacher && (
-                      <button
-                        type="button"
-                        className="text-xs text-red-600 hover:text-red-700"
-                        onClick={async () => {
-                          if (!id) return;
-                          if (!confirm('Delete this announcement? This cannot be undone.')) return;
-                          try {
-                            await classroomApi.deleteAnnouncement(id, a.id);
-                            setAnnouncements((prev) => prev?.filter((ann) => ann.id !== a.id) ?? []);
-                            toast.success('Announcement deleted');
-                          } catch (err) {
-                            console.error(err);
-                            toast.error('Failed to delete announcement');
-                          }
-                        }}
-                      >
-                        Delete
-                      </button>
-                    )}
+                <div className="flex items-center gap-3">
+                  <Avatar name={a.authorName} imageUrl={a.authorProfileImageUrl} size="sm" />
+                  <div className="flex-1 flex items-center justify-between text-xs text-slate-500">
+                    <p>
+                      <span className="font-medium text-slate-900">{a.title}</span> · {a.authorName}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <p>{new Date(a.createdAt).toLocaleString()}</p>
+                      {isTeacher && (
+                        <button
+                          type="button"
+                          className="text-xs text-red-600 hover:text-red-700"
+                          onClick={async () => {
+                            if (!id) return;
+                            if (!confirm('Delete this announcement? This cannot be undone.')) return;
+                            try {
+                              await classroomApi.deleteAnnouncement(id, a.id);
+                              setAnnouncements((prev) => prev?.filter((ann) => ann.id !== a.id) ?? []);
+                              toast.success('Announcement deleted');
+                            } catch (err) {
+                              console.error(err);
+                              toast.error('Failed to delete announcement');
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <p className="mt-1 text-sm text-slate-700">{a.content}</p>
@@ -701,7 +741,7 @@ export const ClassDetailPage: React.FC = () => {
                 <div>
                   <p className="font-medium text-slate-900">{a.title}</p>
                   <p className="text-xs text-slate-500">
-                    Due {new Date(a.dueDate).toLocaleDateString()}  b7 Max {a.maxMarks} marks
+                    Due {new Date(a.dueDate).toLocaleDateString()} · Max {a.maxMarks} marks
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -765,8 +805,9 @@ export const ClassDetailPage: React.FC = () => {
           )}
           <ul className="divide-y divide-slate-100 rounded-2xl bg-white shadow-soft ring-1 ring-slate-100">
             {members?.map((m) => (
-              <li key={m.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                <div>
+              <li key={m.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                <Avatar name={m.name} imageUrl={m.profileImageUrl} size="md" />
+                <div className="flex-1">
                   <p className="font-medium text-slate-900">{m.name}</p>
                   <p className="text-xs text-slate-500">
                     Joined {new Date(m.joinedAt).toLocaleDateString()}
@@ -926,7 +967,7 @@ export const ClassDetailPage: React.FC = () => {
                               }`}
                             >
                               <div className="mt-0.5 flex-shrink-0">
-                                <Avatar name={m.senderName} size="sm" />
+                                <Avatar name={m.senderName} imageUrl={m.senderProfileImageUrl} size="sm" />
                               </div>
                               <div
                                 className={`flex max-w-[78%] flex-col ${

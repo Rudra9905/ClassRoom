@@ -35,6 +35,7 @@ type AnnouncementResponseDTO = {
     name: string;
     email: string;
     role: UserRole;
+    profileImageUrl?: string | null;
   };
   title: string;
   content: string;
@@ -55,6 +56,7 @@ const mapMember = (dto: ClassroomMemberResponseDTO): Member => ({
   name: dto.user.name,
   role: dto.user.role,
   joinedAt: dto.joinedAt,
+  profileImageUrl: dto.user.profileImageUrl,
 });
 
 const mapAnnouncement = (dto: AnnouncementResponseDTO): Announcement => ({
@@ -62,6 +64,7 @@ const mapAnnouncement = (dto: AnnouncementResponseDTO): Announcement => ({
   title: dto.title,
   content: dto.content,
   authorName: dto.author.name,
+  authorProfileImageUrl: dto.author.profileImageUrl,
   createdAt: dto.createdAt,
   attachmentUrl: dto.attachmentUrl ?? undefined,
 });
@@ -97,8 +100,8 @@ export const classroomApi = {
     const { data } = await apiClient.get<ClassroomResponseDTO>(`/classrooms/${id}`);
     return mapClassroom(data);
   },
-  async deleteClassroom(id: string): Promise<void> {
-    await apiClient.delete(`/classrooms/${id}`);
+  async deleteClassroom(id: string, teacherId: string): Promise<void> {
+    await apiClient.delete(`/classrooms/${id}`, { params: { teacherId } });
   },
   async leaveClassroom(classroomId: string, userId: string): Promise<void> {
     await apiClient.delete(`/classrooms/${classroomId}/leave`, {
